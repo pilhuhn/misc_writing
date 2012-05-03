@@ -20,9 +20,7 @@
 
 
 \begin{abstract}
-RHQ\footnote{\url{http://rhq-project.org/}} is an open source project that forms a systems and server monitoring
-suite that supports a variety of managed
-resources out of the box via so called plugins. 
+RHQ\footnote{\url{http://rhq-project.org/}} is an open source software suite that manages and monitors any resource able to communicate with the suite.
 
 In RHQ terms, a \emph{resource} 
 is everything that can be monitored or managed. Examples are java processes, a datasource within an application server or disks and cpu of a machine, but could also be thermometer chips or light sensors.
@@ -30,115 +28,130 @@ is everything that can be monitored or managed. Examples are java processes, a d
 Functionality of RHQ includes:
 \begin{itemize}
 \item Auto-detection of managed resources
-\item Monitoring of resource metrics, logfiles or other event sources. This also includes graphing of metrical values. Metrical values are stored for up to a year.
+\item Monitoring of resource metrics, logfiles, or other event sources. This also includes graphing of metrical values. Metrical values are stored for up to a year.
 \item Configuring the managed resources
 \item Running operations against resources
-\item Deploying software onto managed machines ("Bundles")
-\item Alerting on metrical values, operation outcome and many more conditions
+\item Deploying software ("Bundles") onto managed machines
+\item Alerting on metrical values, operation outcome, and many more conditions
 \item Detection of filesystem content changes ("Drift")
-\item Grouping of resources in order to issue actions on the whole group
+\item Grouping of resources in order to issue operations on the whole group
 \end{itemize}
 
 RHQ has been designed with extensibility in mind. 
 In order to support managed resources that are not delivered out of the box 
 (e.g.\ other kinds of servers or network equipment etc.), 
-the user can write plugis that interface with those resources and add them to RHQ.
+the user can write plugins that interface with those resources, and add them to RHQ.
 
-This paper gives a short overview over RHQ and its architecture and then
+This paper gives a short overview of RHQ and its architecture, and then
 describes the ways to interface with RHQ.
 \end{abstract}
 
 \section{Overview}
-RHQ consists of a central server (or cluster thereof) and so called
+RHQ consists of a central server (or cluster of servers) and so called
 \emph{agents} on managed machines (\emph{platforms} in RHQ terminology) and thus
 follows a hub and spoke approach. Connected to the server is the central
-database that stores the inventory -- this list os managed resources, gathered
-metrics, schedules for operations to be executed and much more.
+database that stores the inventory -- the list of managed resources, gathered
+metrics, schedules for operations to be executed, and much more.
 
 \noindent\includegraphics[width=\columnwidth]{graph/arch.pdf}
 
-All user interaction with RHQ also happens on the server, be it the graphical
+All user interaction with RHQ also happens on the server, be it via the graphical
 user interface, the command line interface or via REST. 
 
 Agents connect to the server and themselves host the \emph{agent plugins} (often
-just named "plugins") which do the actual work of interfacing with the managed
+just called "plugins") which do the actual work of interfacing with the managed
 resources; the server never talks to managed resources directly.
 
-A second kind of plugins, the \emph{server plugins} run in the server; most
+A second kind of plugin, the \emph{server plugin}, runs in the server; most
 prominent server plugins are alert notification senders that are invoked when an
 alert is fired.
 
 \section{Graphical user interface}
 
-The main interface into RHQ is a graphical user interface that is for most parts
-written in Google Web Toolkit (GWT). There are still some older parts in other
+The main interface for RHQ is a graphical user interface that is for the most part
+written with the Google Web Toolkit (GWT). There are still some older parts that use other
 technologies. The GUI can be reached at \url{http://localhost:7080/}; default
 username and password after installation are 'rhqadmin' and 'rhqadmin'. The UI
-has been (partially) translated into several languages like Japanese, Chinese, Portuguese or German. After logging in, you are presented with a dashboard, that gives an
+has been partially translated into several languages like Japanese, Chinese, Portuguese or German. After logging in, you are presented with a dashboard, that gives an
 overview of the system state.
-
-
 
 \section{Command line interface}
 
-The command line interface is another way to communicate with RHQ. The user can run the CLI interactively to explore the system or can pass pre-created scripts to it that will be executed.
+The command line interface is another way to communicate with RHQ. The user can run the CLI interactively to explore the system or can pass pre-created scripts to it to be executed.
 
-The programming language inside the CLI is JavaScript\footnote{There is a proof of concept to use other programming languages like Ruby for this purpose, so in theory one would not be restricted to JavaScript here.}, where several of the server methods have been made available as built-in functions. This allows to write powerful scripts with loops and conditions etc.
+The programming language inside the CLI is JavaScript\footnote{There is 
+a proof of concept that uses other programming languages like Ruby for this 
+purpose, so in theory one would not be restricted to JavaScript.}, where 
+several of the server methods have been made available as built-in functions. 
+This allows users to write powerful scripts with loops, conditions, and other logic.
 
 \section{Agent plugins}
 
-As indicated above agent plugins implement the logic to talk to managed resources. The plugin iteself consists of some Java code and meta-data in xml format, the so called \emph{plugin descriptor}, which tells the agent\footnote{More precisely the plugin-container which runs inside the agent and which actually hosts the plugins.} what functionality is available. A plugin does not need to implement all \emph{facets} of management and can pick several aspects. The plugin descriptor wires those together. It also tells the server what functionality a plugin provides, so that the server can dynamically render the UI from this metadata. This also implies that the server itself has no built-in knowledge about any managed resource.
+Agent plugins implement the logic to communicate with managed resources.
+The plugin iteself consists of some Java code and metadata in XML, the 
+so-called \emph{plugin descriptor}, which tells the agent\footnote{More precisely, 
+the plugin-container which runs inside the agent and which actually 
+hosts the plugins is given the metadata.} what functionality is 
+available. A plugin does not need to implement all \emph{facets} of 
+management and can pick several aspects. The plugin descriptor 
+wires those together. It also tells the server what functionality 
+a plugin provides, so that the server can dynamically render the 
+UI from this metadata. This also implies that the server itself 
+has no built-in knowledge about any managed resource.
 
 \subsection{Parts of an agent plugin}
 
 An agent plugin consists of three parts:
 \begin{itemize}
-\item Discovery class: this reaches out to managed resources, finds them and reports them back to the system.
-\item Component class: this class implements the various facets of functionality.
-\item Plugin descriptor: it defines the functionality and wires the classes together
+\item Discovery mechanism: this reaches out to managed resources, finds them and reports them back to the system.
+\item Component mechanism: this implements the various facets of functionality.
+\item Plugin descriptor: this defines the functionality and wires the components together
 \end{itemize}
 
-If you want to learn more about plugin development, you can refer to the documents in the further reading section.
+If you want to learn more about plugin development, you can refer to the documents in the "Further reading" section.
 
 \section{Server plugins}
 
 Server plugins are a relatively general concept to extend the server functionality. The most prominent use case in RHQ are the alert notification sender plugins. 
 
-When RHQ fires an alert, it will call the configured alert senders to do the actual notification. This can e.g.\ be via email or SNMP\footnote{Simple Network Management Protocol} trap, as those are senders that come with RHQ out of the box. As the alert notification senders are server side plugins you can in fact write your own integrations to e.g. primary monitoring systems or to SMS gateways. In many enterprises, all alerts need to be logged in a central trouble-ticket system. Here the plugin can create this interface and e.g.\ do a REST-PUT request into the trouble ticket system.
+When RHQ fires an alert, it will call the configured alert senders to do the actual notification. This can be via email or SNMP\footnote{Simple Network Management Protocol} trap, as those are senders that come with RHQ out of the box.\footnote{Other alert protocols can be configured and installed.}
+
+As the alert notification senders are server side plugins you can write your own integrations to other monitoring systems or to SMS gateways, for example. In many enterprises, all alerts need to be logged in a central trouble-ticket system. The plugin can create this interface and do a REST-PUT request into the trouble ticket system.
 
 Other kinds of server plugins include content sources or report generation: server plugins can be triggered at regular intervals so it is also possible to generate hourly reports about deployed systems and send them via email. 
 
-Server side plugins could also read external files and e.g.\ compute memberships of resource groups from the data in this file.
+Server side plugins could also read external files and compute memberships of resource groups from the data in this file.
 
-\section{REST-interface}
+\section{REST Interface}
 
-The REST interface provides a way to retrieve values from the server and to also
-push new values into the server in a programming language agnostic way.
-This allows to \emph{manage the enterprise with curl}. One of the more
-popular use cases here is the creation of custom dashboards where many metrical
-graphs are displayed on a huge screen; this can e.g.\ be achieved with the help
-of some javascript code and the for example the D3.js library.
+The REST interface provides a way to retrieve values and store 
+new values in the server in a language-agnostic way.
+This allows users to \emph{manage the enterprise with curl}, if so desired. 
+One of the more
+popular use cases involving the REST API is the creation of custom dashboards where many metrical
+graphs are displayed on a huge screen; this can be achieved with the help
+of some JavaScript code or the D3.js\footnote{\url{http://mbostock.github.com/d3/}} library, for example.
 
 \noindent\includegraphics[width=\columnwidth]{graph/multigraph.png}
 
 While currently not complete, it will contain a good part of the functionality
 that is needed for daily business; just recently export of the reports (suspect metrics, recent alerts etc.) has been added. 
 
-The REST-Api is clearly intended to be read-write. In fact it is possible to supply metric or baseline data values from external sources. 
+The REST API is clearly intended to be read-write. In fact it is possible to supply metric or baseline data values from external sources. 
 
 The next diagram shows a metric graph with two baselines (lower and upper). By default those are computed in the RHQ server to be the min and max values for the metrics in the last \emph{n} days. Near the end the metric goes above the upper baseline and thus generates an out-of-band (OOB) event.
 
 \noindent\includegraphics[width=\columnwidth]{graph/baseline_graph.pdf}
 
-It is also possible to turn the automatic baseline calculation off and have an external system supply those values via the REST-Api:
+It is also possible to turn the automatic baseline calculation off and have an external system supply those values via the REST API:
 
 \noindent\includegraphics[width=\columnwidth]{graph/ext_baseline.pdf}
 
-In this example we see the agent still delivering metrics as usual. The compute node calls into the server and requests the raw metrics from e.g.\ the last day and then computes baselines for those values, which are then fed into the RHQ server, which will then use those baselines to for alert generation. Interesting candidates to compute the baseline are for example 1\% and 99\% quantiles of the metric values or a computation according to Holt-Winters that is able to take seasonal variations (weekday vs.\ weekend) into account.
+In this example, we see the agent still delivering metrics as usual. The compute node calls into the server and requests the raw metrics from the most recent day and then computes baselines for those values, which are then fed into the RHQ server, which will then use those baselines for alert generation. Interesting candidates to compute the baseline are for example 1\% and 99\% quantiles of the metric values or a computation\footnote{The Holt-Winters method is one exponential smoothing computation that accounts for expected variations in data.} that is able to take seasonal variations (weekday vs.\ weekend) into account.
 
 \section{Further reading}
 
-There is a lot of documentation around RHQ available. THe main source of information is the Wiki at \url{http://rhq-project.org/}, which also links to most of the following resources
+There is a lot of documentation available for RHQ. The main source of information is the Wiki at \url{http://rhq-project.org/}, which also links to most of the following resources:
 
 \begin{itemize}
 \item Video "Overview of RHQ 3" \url{http://vimeo.com/16424369}
