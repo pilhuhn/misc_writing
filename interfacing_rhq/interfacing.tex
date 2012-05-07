@@ -170,7 +170,8 @@ of some JavaScript code or the D3.js\footnote{\url{http://mbostock.github.com/d3
 \end{figure}
 
 While currently not complete, it will contain a good part of the functionality
-that is needed for daily business; just recently export of the reports (suspect metrics, recent alerts etc.) has been added. 
+that is needed for daily business; just recently export of the reports (suspect metrics, recent alerts etc.) has been added. Directing the browser to \url{http://localhost:7080/rest/} provides a list of examples of API-usage. 
+Further examples can be found in the \emph{RHQ-Samples project} (see "Further reading" below).
 
 The REST API is clearly intended to be read-write. In fact it is possible to supply metric or baseline data values from external sources. 
 
@@ -182,7 +183,7 @@ The diagram in figure \ref{fig:baseline} shows a metric graph with two baselines
 \label{fig:baseline}
 \end{figure}
 
-It is also possible to turn the automatic baseline calculation off, by providing a recalculation interval of 0, and have an external system supply those values via the REST API, which is illustrated in figure \ref{fig:comp-node}.
+It is also possible to turn the automatic baseline calculation off, by providing a recalculation interval of zero, and have an external system supply those values via the REST API, which is illustrated in figure \ref{fig:comp-node}.
 
 \begin{figure}[h]
 \noindent\includegraphics[width=\columnwidth]{graph/ext_baseline.pdf}
@@ -191,6 +192,25 @@ It is also possible to turn the automatic baseline calculation off, by providing
 \end{figure}
 
 In this example, we see the agent still delivering metrics as usual. The compute node calls into the server and requests the raw metrics from the most recent day and then computes baselines for those values, which are then fed back into the RHQ server, which will then use those baselines for alert generation. Interesting candidates to compute the baseline are for example 1\% and 99\% quantiles of the metric values or a computation\footnote{The Holt-Winters method is one exponential smoothing computation that accounts for expected variations in data.} that is able to take seasonal variations (weekday vs.\ weekend) into account.
+
+Figure \ref{fig:rest} shows how to obtain basic information about a resource
+from a command line shell with the help of the \emph{curl} command.
+
+\begin{figure}[h]
+{\scriptsize
+\begin{verbatim}
+$ curl -u rhqadmin:rhqadmin http://pintsize:7080/ \\
+    rest/1/resource/10001.json
+{"typeName":"Linux", "resourceName":"pintsize",
+ "resourceId":"10001", "parentId":0,
+ "pluginName":"Platforms","typeId":10008 }
+\end{verbatim}
+}
+\caption{Retrieving info about the resource with id 10001 via a REST call}
+\label{fig:rest}
+\end{figure}
+
+By appending \emph{.json} we tell the REST-engine that we want to have the returned data encoded in the JSON format; all endpoints support JSON and XML, some also support retrieving information as text, csv or html.
 
 \section{Further reading}
 
