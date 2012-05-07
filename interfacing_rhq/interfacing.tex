@@ -53,7 +53,10 @@ follows a hub and spoke approach. Connected to the server is the central
 database that stores the inventory -- the list of managed resources, gathered
 metrics, schedules for operations to be executed, and much more.
 
+\begin{figure}[h]
 \noindent\includegraphics[width=\columnwidth]{graph/arch.pdf}
+\caption{Architecture overview of RHQ}
+\end{figure}
 
 All user interaction with RHQ also happens on the server, be it via the graphical
 user interface, the command line interface or via REST. 
@@ -71,9 +74,16 @@ alert is fired.
 The main interface for RHQ is a graphical user interface that is for the most part
 written with the Google Web Toolkit (GWT). There are still some older parts that use other
 technologies. The GUI can be reached at \url{http://localhost:7080/}; default
-username and password after installation are 'rhqadmin' and 'rhqadmin'. The UI
-has been partially translated into several languages like Japanese, Chinese, Portuguese or German. After logging in, you are presented with a dashboard, that gives an
-overview of the system state.
+username and password after installation are 'rhqadmin' and 'rhqadmin'. 
+
+\begin{figure}[h]
+\noindent\includegraphics[width=\columnwidth]{graph/UI.png}
+\caption{Screenshot of the single resource view in the UI}
+\end{figure}
+
+
+The UI
+has been partially translated into several languages like Japanese, Chinese, Portuguese, Russian or German. After logging in, you are presented with a dashboard, that gives an overview of the system state.
 
 \section{Command line interface}
 
@@ -83,7 +93,29 @@ The programming language inside the CLI is JavaScript\footnote{There is
 a proof of concept that uses other programming languages like Ruby for this 
 purpose, so in theory one would not be restricted to JavaScript.}, where 
 several of the server methods have been made available as built-in functions. 
-This allows users to write powerful scripts with loops, conditions, and other logic.
+This allows users to write powerful scripts with loops, conditions, and other logic. Figure \ref{cli-figure} shows an example run.
+
+\begin{figure}[h]
+{\scriptsize
+\begin{verbatim}
+$ bin/rhq-cli.sh
+RHQ Enterprise Remote CLI 4.4.0-SNAPSHOT
+unconnected$ login rhqadmin rhqadmin
+Remote server version is: 4.4.0-SNAPSHOT (d835ba7)
+Login successful
+
+rhqadmin@localhost:7080$ ResourceManager.getResource(10001);             
+Resource:
+                         id: 10001
+                       name: pintsize
+                    version: Linux 2.6.32-220.7.1.el6.x86_64
+        currentAvailability: UP
+               resourceType: Linux
+\end{verbatim}
+}
+\label{cli-figure}
+\caption{Sample CLI session to get info about the resource with id 10001}
+\end{figure}
 
 \section{Agent plugins}
 
@@ -132,22 +164,33 @@ popular use cases involving the REST API is the creation of custom dashboards wh
 graphs are displayed on a huge screen; this can be achieved with the help
 of some JavaScript code or the D3.js\footnote{\url{http://mbostock.github.com/d3/}} library, for example.
 
+\begin{figure}[h]
 \noindent\includegraphics[width=\columnwidth]{graph/multigraph.png}
+\caption{Graph showing metrics over time. Each colored plot represents one day}
+\end{figure}
 
 While currently not complete, it will contain a good part of the functionality
 that is needed for daily business; just recently export of the reports (suspect metrics, recent alerts etc.) has been added. 
 
 The REST API is clearly intended to be read-write. In fact it is possible to supply metric or baseline data values from external sources. 
 
-The next diagram shows a metric graph with two baselines (lower and upper). By default those are computed in the RHQ server to be the min and max values for the metrics in the last \emph{n} days. Near the end the metric goes above the upper baseline and thus generates an out-of-band (OOB) event.
+The diagram in figure \ref{fig:baseline} shows a metric graph with two baselines (lower and upper). By default those are computed in the RHQ server to be the min and max values for the metrics in the last \emph{n} days. Near the end the metric goes above the upper baseline and thus generates an out-of-band (OOB) event.
 
+\begin{figure}[h]
 \noindent\includegraphics[width=\columnwidth]{graph/baseline_graph.pdf}
+\caption{Baselines in RHQ}
+\label{fig:baseline}
+\end{figure}
 
-It is also possible to turn the automatic baseline calculation off and have an external system supply those values via the REST API:
+It is also possible to turn the automatic baseline calculation off, by providing a recalculation interval of 0, and have an external system supply those values via the REST API, which is illustrated in figure \ref{fig:comp-node}.
 
+\begin{figure}[h]
 \noindent\includegraphics[width=\columnwidth]{graph/ext_baseline.pdf}
+\caption{Baseline calculation by an external compute node}
+\label{fig:comp-node}
+\end{figure}
 
-In this example, we see the agent still delivering metrics as usual. The compute node calls into the server and requests the raw metrics from the most recent day and then computes baselines for those values, which are then fed into the RHQ server, which will then use those baselines for alert generation. Interesting candidates to compute the baseline are for example 1\% and 99\% quantiles of the metric values or a computation\footnote{The Holt-Winters method is one exponential smoothing computation that accounts for expected variations in data.} that is able to take seasonal variations (weekday vs.\ weekend) into account.
+In this example, we see the agent still delivering metrics as usual. The compute node calls into the server and requests the raw metrics from the most recent day and then computes baselines for those values, which are then fed back into the RHQ server, which will then use those baselines for alert generation. Interesting candidates to compute the baseline are for example 1\% and 99\% quantiles of the metric values or a computation\footnote{The Holt-Winters method is one exponential smoothing computation that accounts for expected variations in data.} that is able to take seasonal variations (weekday vs.\ weekend) into account.
 
 \section{Further reading}
 
@@ -156,10 +199,13 @@ There is a lot of documentation available for RHQ. The main source of informatio
 \begin{itemize}
 \item Video "Overview of RHQ 3" \url{http://vimeo.com/16424369}
 \item Video "How to write a plugin" \url{http://vimeo.com/16171314}
-\item Whitepaper "How to write a plugin": this gives a step by step introduction into plugin writing. While it is a bit old most parts still apply to current versions of RHQ
+\item Whitepaper "How to write a plugin": this gives a step by step introduction into plugin writing. While it is a bit old most parts still apply to current versions of RHQ \url{http://www.redhat.com/f/pdf/Write_A_Plugin_WP_web.pdf}
 \item RHQ user documentation \url{http://rhq-project.org/display/JOPR2/Home}
+\item RHQ-samples project on GitHub, that aims to collect examples around RHQ, that are not included in the main source tree. \url{https://github.com/rhq-project/samples}
 \end{itemize}
 
 In addition a big part of the documentation for JBoss Operations Network (JBoss ON) applies to RHQ as well. This documentation can be found at \url{http://docs.redhat.com/docs/en-US/JBoss_Operations_Network/3.0/}
 
+\section*{About this document}
+This document is available in \LaTeX\ source form at \url{https://github.com/pilhuhn/misc_writing/tree/master/interfacing_rhq}
 \end{document}
