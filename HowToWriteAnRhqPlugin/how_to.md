@@ -352,7 +352,7 @@ Again, `responseTime` is modeled as numerical data, while the status is modeled 
 ### Ready, steady, go ... ###
 
 To compile the plugin, go to the root of the plugin tree and do mvn -Pdev install
-The dev mode allows maven to automatically deploy the plugin to a server instance as described on the Advanced Built Notes page on the RHQ-Wiki5.
+The dev mode allows maven to automatically deploy the plugin to a server instance as described on the Advanced Built Notes page on the RHQ-Wiki.
 When the server is running or starting up, you will see a line like this in the server log:
 
     21:49:31,874 INFO  [ProductPluginDeployer] Deploying ON plugin HttpTest (HttpTest plugin)
@@ -380,7 +380,7 @@ On the top you see the numerical ResponseTime data, and in the lower section the
 
 Congratulations, you just wrote your first RHQ plugin, that can also be used in JBoss ON 2. Writing a plugin consists of three parts: Discovery, Plugin Component and plugin descriptor. The agent with its plugin container is providing you with all the infrastructure to talk to the server, scheduling of metric gathering, scheduling of discovery etc. This means that you can fully concentrate on the business code of your plugin. RHQ just does the rest.
 
-I have made the source code of those articles available as zip archive, that you can unpack in the `modules/plugins/ directory.
+I have made the source code of those articles available as zip archive, that you can unpack in the `modules/plugins/ directory`.
 
 # Enhancing the plugin #
 
@@ -691,6 +691,101 @@ The other method to implement is `poll()`:
 
 To create one Event object you just instantiate it. The needed type can just be obtained by a call to `getEventType()`.
 
+
+# Tools : Standalone plugin container #
+
+Above I have described how you can deploy the plugin to the server and then when it is deployed tell the
+agent to fetch it to also have it deployed there. Especially when you start writing a new plugin, this
+process is tedious and slow.
+
+Luckily there is a way you can test the functionality of the plugin classes without the need to deploy it to the server (If you need to see how things render on the server, you still need to deploy it there though). The 
+_standalone plugin container_ allows you to just load the plugin you want to test (plus its dependencies)
+and then issue commands in an interactive shell.
+
+## Sample run ##
+
+To start the standalone PC, you change into the agent directory, copy your plugin into the `plugins` subdirectory and then call
+
+    bin/standalone-pc.sh
+
+in the agent directory[^1], which will print a few messages about loading plugins and then wait at a command prompt:
+
+
+    hrupp$ bin/standalone-pc.sh 
+    
+    Starting the plugin container.
+    Loading plugins
+    ...Loaded plugin: HttpCheck
+    ...Loaded plugin: Platforms
+    
+    Ready.
+    [0]:0 >
+
+The command prompt now waits for your input. The number in the square brackets is the number of the current command. The number after the colon a resource id; we will see that in more detail later. To see a list of commands, you can type `help`, which shows a list of commands, their abbreviation, possible arguments and a short description.
+
+One of the first things you want to do here is to discover resources
+
+    [0]:0 > disc all
+    Discovery took: 5408ms
+    [Resource[id=-25, uuid=b1f......
+
+To select a resource and to issues specific commands to it, you can set it's id:
+
+    [1]:0 > set id -2
+    [2]:-2 res
+    Resource[id=-2, uuid=2eb2ef5b-9ad4-444b-a1a4-4cced69ff34f, type={Platforms}Mac OS X, key=snert, name=snert, parent=<null>, version=MacOSX 10.7.4]
+    [3]:-2 > m -list
+    Native.MemoryInfo.used : MEASUREMENT, The total used system memory (does not include buffer or cache memory)
+    Native.MemoryInfo.actualUsed : MEASUREMENT, The actual total used system memory (includes buffer and cache memory)
+    CpuPerc.sys : MEASUREMENT, Percentage of all CPUs running in system mode
+    CpuPerc.user : MEASUREMENT, Percentage of all CPUs running in user mode
+    [4]:-2 > m m CpuPerc.user
+    MeasurementDataNumeric[name=CpuPerc.user, value=0.1188118811881188, scheduleId=1, timestamp=1342878190137]
+
+In step 1, we selected resource id -2, then issued the `res` command to see specifics of the resource. In step 3,
+we inquired the list of metrics and in step 4 queried the value of the metric with the name `CpuPer.user`. The first 'm' in the command is the command name monitor, the second means that this is a metric.
+
+### Getting and setting the plugin configuration ###
+
+Above we have seen how to set the URL for the target to monitor. You can also inspect and set those
+values from the standalone container by running the __pc__ and __pcs__ commands:
+
+    [5]:-2 > pc
+    PropertyList[id=0, name=logs, list=[]]
+    [6]:-2 > pcs logs=bla
+    [7]:-2 > pc
+    PropertySimple[id=0, name=logs, value=bla, override=null]
+    
+
+## Command history ##
+
+When using the standalone-pc, you often want to repeat a command given. For this purpose a csh-like
+command syntax exists. Issuing `!h` gives you an overview of existing commands.
+
+To dispay the history you give `!?`:
+
+    [8]:-2 > !?
+    [0]: res
+    [1]: set id -2
+    [2]: m -list
+    [3]: m m CpuPerc.user
+
+To re-run command 2 you say `!2`; to just re-run the last command, you can simply type `!!`.
+
+### Recording and replaying of commands ###
+
+As you have just seen, the system keeps a list of commands issued. You can write that list of commands 
+to a file via `!w <filename>`. When you then start the container with that filename as argument, it will
+re-run the commands from the file.
+
+    bin/standalone-pc.sh <filename>
+    
+When the standalone container has run all the commands, it will just shut down. In many times when developing
+a new plugin, you want to continue issuing commands and for example check the executed plugin code in the
+debugger. To achieve this, add a `stdin` command before writing the file (or edit the generated file afterwards).
+
+
+
 # Plugin community #
 
 The RHQ wiki now hosts a plugin community page that shows available plugins: RHQ Plugin Community at <https://docs.jboss.org/author/display/RHQ/Plugin+Community>.
@@ -701,3 +796,6 @@ RHQ developers can be reached in #rhq on irc.freenode.net, development forums ar
 
 # About the author  #
 Heiko W. Rupp is developer at Red Hat in the area of RHQ and JBoss ON. He contributed to Jboss AS and other open source projects in the past and wrote the first German JBoss book and one of the first German books on EJB3. He lives with his family in Stuttgart, Germany.
+
+
+[^1]: Before RHQ 4.5, this command was not installed by default in the agent's bin directory, but only in the sources under `etc/standalone-pc/` directory or on sourceforge at <http://sourceforge.net/projects/rhq/files/rhq/standalone-container/>.
