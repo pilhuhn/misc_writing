@@ -1,4 +1,4 @@
-# How to write a plugin for RHQ and JBoss ON? #
+# How to write a(n agent) plugin for RHQ and JBoss ON? #
 
 By Heiko W. Rupp <heiko.rupp@redhat.com>
 
@@ -784,9 +784,59 @@ When the standalone container has run all the commands, it will just shut down. 
 a new plugin, you want to continue issuing commands and for example check the executed plugin code in the
 debugger. To achieve this, add a `stdin` command before writing the file (or edit the generated file afterwards).
 
+# Tools: Plugin verification #
+
+During development process you will often change items in the plugin descriptor and your java classes and
+if you make a mistake, you will only find out when you deploy the plugin to the server (or the standalone
+container). Actually there is a way to run a basic verification of the plugin. This checks some basic properties like the syntactical 
+correctness of the plugin descriptor and if the classes that are denoted as discovery and component
+classes can be found and loaded by the plugin classloaders.
+
+## Standalone usage
+
+To run the verification you can change into the agent directory and run `bin/plugin-validator.sh`[^2] 
+with the plugin-jar as argument like this:
+
+    $bin/plugin-validator.sh $DEV/modules/plugins/httpcheck/target/httpcheck-plugin.jar
+    !OK!
+
+If you made an error, the result will be `!FAILED`. In addition error and warning messages are printed on the
+console. More comprehensive logging will written to the agent log
+file at `log/agent.log`.
+
+If you have written a plugin that depends on other plugins, you need to provide them all on the command line.
 
 
-# Plugin community #
+## As Part of the build ##
+
+If you have checked out the whole RHQ source tree, you can add your plugin to the list of plugins to be verified
+when a build of the plugins happens. This verification step checks some basic properties like the syntactical 
+correctness of the plugin descriptor and if the classes that are denoted as discovery and component
+classes can be found and loaded by the plugin classloaders.
+
+To do this, you need to add your plugin to the list in `modules/plugins/validate-all-plugins/pom.xml`:
+
+    <plugin>
+      <artifactId>maven-antrun-plugin</artifactId>
+      <executions>
+        <execution>
+          <phase>integration-test</phase>
+          <configuration>
+            <target>
+              <property name="test.classpath" refid="maven.test.classpath" />
+              <echo>Validating plugins...</echo>
+              <java classname="org.rhq.core.pc.plugin.PluginValidator" failonerror="true" fork="true">
+                <classpath>
+                  <pathelement path="${test.classpath}" />
+                  <pathelement location="../apache/target/rhq-apache-plugin-${project.version}.jar" />
+                  <!-- as in the next line  vvvvv  -->
+                  <pathelement location="../httpcheck/target/httpcheck-plugin-${project.version}.jar" />
+                  <!-- ^^^^^^ -->
+
+You just add the path to your plugin to the list of `<pathelement>` elements as shown above.
+
+
+# More information on Plugins #
 
 The RHQ wiki now hosts a plugin community page that shows available plugins: RHQ Plugin Community at <https://docs.jboss.org/author/display/RHQ/Plugin+Community>.
 
@@ -799,3 +849,5 @@ Heiko W. Rupp is developer at Red Hat in the area of RHQ and JBoss ON. He contri
 
 
 [^1]: Before RHQ 4.5, this command was not installed by default in the agent's bin directory, but only in the sources under `etc/standalone-pc/` directory or on sourceforge at <http://sourceforge.net/projects/rhq/files/rhq/standalone-container/>.
+
+[^2]: This standalone way is available from RHQ 4.5 on. Before 4.5 only the batch check when building all the plugins is available.
