@@ -355,26 +355,40 @@ To compile the plugin, go to the root of the plugin tree and do mvn -Pdev instal
 The dev mode allows maven to automatically deploy the plugin to a server instance as described on the Advanced Built Notes page on the RHQ-Wiki.
 When the server is running or starting up, you will see a line like this in the server log:
 
-    21:49:31,874 INFO  [ProductPluginDeployer] Deploying ON plugin HttpTest (HttpTest plugin)
+    14:23:31,558 INFO  [ProductPluginDeployer] Discovered agent plugin [HttpTest]
+    14:23:31,574 INFO  [ProductPluginDeployer] Deploying [1] new or updated agent plugins: [HttpTest]
+    14:23:31,665 INFO  [ResourceMetadataManagerBean] Updating resource type [HttpTest:HttpServer(id=0)]...
+    14:23:31,667 INFO  [ResourceMetadataManagerBean] Persisting new ResourceType [HttpTest:HttpServer(id=0)]...
+    14:23:31,791 INFO  [ProductPluginDeployer] Plugin metadata updates are complete for [1] plugins: [HttpTest]
 
-The next step is to make the plugin available to the agent. Remember that the agent is usually pulling plugins from the server when it is starting up. So if you have not yet started the agent, there is nothing to do for you. If the agent is already started, you can issue plugins update at the command prompt to update them to the latest versions of the server.
-If you now log into the GUI, go to the Autodiscovery portlet and import the new server into Inventory.
 
-![Auto-discovery portlet](assets/ad_portlet.png)
+The next step is to make the plugin available to the agent. Remember that the agent is usually pulling plugins from the server when it is starting up. So if you have not yet started the agent, there is nothing to do for you. If the agent is already started, you can issue `plugins update` at the command prompt to update them to the latest versions of the server.
+
+    snert$ bin/rhq-agent.sh
+    Listening for transport dt_socket at address: 8788
+    RHQ 4.5.0-SNAPSHOT [963a082] (Tue Aug 21 09:57:02 EDT 2012)
+    > plugins update
+    The plugin container has been stopped.
+    Updating plugins to their latest versions.
+    The plugin [HttpTest] has been updated at [rhq-httptest-plugin-4.5.0-SNAPSHOT.jar].
+    Completed updating the plugins to their latest versions.
+    The plugin container has been started.
+    > 
+
+If you now log into the GUI at [http://localhost:7080/]() and go to Inventory->Discovery Queue you import the new server into Inventory.
+
+![Discovery Queue](assets/discovery_queue.png)
 
 Next go to the resource browser, click on ‚Servers‘ and you can see the server ‚discovered‘ by our plugin:
 
 ![Servers in Inventory](assets/inventory_servers.png)
 
-Clicking on the server name or the little ‚M‘onitor icon leads you to the indicator charts, where (after some time) you can see the response time values:
+Clicking on the server name (the link) leads you to the details page for the resource. Clicking on Monitoring->Graphs brings you to the graphical metric display, where (after some time) you can see the response time values:
 
 ![Metrics display](assets/metrics_from_plugin.png)
 
-When you click on the Metric Data subtab, you can see the raw data for the server:
-
-![Tabular display of metrics](assets/tabular_data.png)
-
-On the top you see the numerical ResponseTime data, and in the lower section the server status as trait as expected.
+When you click on the Tables subtab, you can see the response time data for the server in a tabular way,
+while the trait for the status code can be found on the Traits subtab.
 
 ## What do we have now? ##
 
@@ -386,6 +400,8 @@ I have made the source code of those articles available as zip archive, that you
 
 We have just built our first RHQ plugin. This was working great, but hardcoding the target URL is not really elegant. I will now show you how to make the target URLs configurable from the GUI.
 To do this we need to reshuffle things a little: We will have a generic Server ‚HttpCheck‘ that servers as parent for the individual http-servers that we want to monitor. Those will live as Services under that Server. In the Server inventory we will add the possibility to manually add new http servers on the go.
+
+Note: before you continue, go to Administration->Agent plugins and remove the old plugin.
 
 ![RHQ Architecture](assets/manual_add.png)
 
@@ -475,41 +491,47 @@ The HttpDiscoveryComponent from above only got some minor adjustments to cater f
 
 ### Service level: HttpServiceDiscoveryComponent ###
 
-The `HttpServiceDiscoveryComponent` is more interesting, as we no longer have the hard coded keys, but we get the URL passed in from the GUI when the user is adding a new one.
+The `HttpServiceDiscoveryComponent` is more interesting, as we no longer have the hard coded keys, but we get the URL passed in from the GUI when the user is adding a new one. Here you will also see a new facet (`ManualAddFacet`), that has been introduced to support `supportsManualAdd=“true“` from the plugin descriptor.
+Let's start with the basic implementation of `ResourceDiscoveryComponent`:
 
     public class HttpServiceDiscoveryComponent implements
-       ResourceDiscoveryComponent<HttpServiceComponent>
+       ResourceDiscoveryComponent, ManualAddFacet
     {
        public Set<DiscoveredResourceDetails> discoverResources
-            (ResourceDiscoveryContext<HttpServiceComponent> context) throws
+            (ResourceDiscoveryContext context) throws
              InvalidPluginConfigurationException, Exception
        {
-          Set<DiscoveredResourceDetails> result = new
-              HashSet<DiscoveredResourceDetails>(); 
-          ResourceType resourceType = context.getResourceType();
-          
-This basically the same code that we already know. The interesting part starts now:
+          return Collections.emptySet();
+       }
+       
+This just returns an empty set, as we don't want to automatically discovery these kinds of resources.
+The implementation of the `ManualAddFacet`then looks like this:
+       
+    @Override
+    public DiscoveredResourceDetails discoverResource(Configuration pluginConfiguration,
+        ResourceDiscoveryContext context) throws InvalidPluginConfigurationException {
 
-    List<Configuration> childConfigs = context.getPluginConfigurations();
-    for (Configuration childConfig : childConfigs) { 
-       String key = childConfig.getSimpleValue(“url“, null);
-       if (key == null)
-          throw new InvalidPluginConfigurationException( „No URL provided“);
-
-We get a list of plugin configurations passed from the context through which we loop to determine the passed parameters. As we have only one – the url – this is simple.
-If there is no url provided provided we complain (actually that should never happen, as we marked the property as required in the plugin descriptor above).
-
-         String name = key;
-         String description = „Http server at „ + key;
-         DiscoveredResourceDetails detail = new 	   
-               DiscoveredResourceDetails( resourceType, key, name,
-               null, description, childConfig, null );
-         result.add(detail);
-      }
-      return result;
+        ResourceType resourceType = context.getResourceType();
+        String key = pluginConfiguration.getSimpleValue("url", null);
+        if (key == null)
+            throw new InvalidPluginConfigurationException("No URL provided");
+        String name = key;
+        String description = "Http server at " + key;
+        DiscoveredResourceDetails detail = new DiscoveredResourceDetails(
+            resourceType, 
+            key, 
+            name, 
+            null,
+            description, 
+            pluginConfiguration, 
+            null);
+        return detail;
     }
     
-The remainder of the is the same as we know it already from above.
+This methods gets one create request at a time passed in. We check if there is some url given
+at all (in fact the definition in the plugin descriptor prevents empty properties already, but
+it is good to check anyway) and then just creates a new `DiscoveredResourceDetails` object, which
+is then returned.
 
 ### Change in plugin components ###
 
@@ -627,19 +649,20 @@ We have seen the MeasurementFacet in the previous articles. In this section I wi
 
 ## ConfigurationFacet ##
 
-This facet indicates that the plugin is able to read and write the configuration of a managed resource. It goes hand in hand with <resource-configuration> in the plugin descriptor. As I've stated above, the code to create a new managed resource from scratch needs to be on the parent resource, so it is a good idea to write plugins that use the ConfigurationFacet in a way that they have a parent resource for the subsystem and children for individual resources. You can find an example for this in the JbossAS plugin when looking at the JbossMessaging subsystem and the individual JMS destinations.
+This facet indicates that the plugin is able to read and write the configuration of a managed resource. It goes hand in hand with `<resource-configuration> in the plugin descriptor. As I've stated above, the code to create a new managed resource from scratch needs to be on the parent resource, so it is a good idea to write plugins that use the ConfigurationFacet in a way that they have a parent resource for the subsystem and children for individual resources. You can find an example for this in the JbossAS plugin when looking at the JbossMessaging subsystem and the individual JMS destinations.
 
 ## OperationFacet ##
 
-An operation allows you to invoke functionality on the managed resource. This could be a restart operation or whatever you want to invoke on a target. Operations are described in <operation> elements in the plugin descriptor. They can have argument and return values.
+An operation allows you to invoke functionality on the managed resource. This could be a restart operation or whatever you want to invoke on a target. Operations are described in `<operation>` elements in the plugin descriptor. They can have argument and return values.
 
 ## ContentFacet ##
 
-This facet allows the uploading content like files or archives into the managed resource. That way it is possible to centrally manage software distribution into managed resources. There exists a <content> element as counterpart.
+This facet allows the uploading content like files or archives into the managed resource. That way it is possible to centrally manage software distribution into managed resources. There exists a `<content>` element as counterpart.
 
 ## Events ##
 
-Events are a way to inject asynchronous data into the RHQ server. They are a little like traits. The difference here is that one Event definition can match multiple event sources and that the number of Events that are delivered to the RHQ server can be different each time the polling for Events is called.
+Events are a way to inject asynchronous data into the RHQ server. One example of Events within RHQ
+is the gathering and parsing of logfiles. Events are a little bit like traits. The difference here is that one Event definition can match multiple event sources and that the number of Events that are delivered to the RHQ server can be different each time the polling for Events is called.
 Events are processed by EventPollers – a method that gets called at a regular interval by the PluginContainer and which delivers one or more Events back into the system.
 Two samples for EventPollers are the Logfile pollers, that check for new matching lines in logfiles and the snmptrapd plugin that I will describe now.
 The plugin descriptor is mostly as we know it already. There is now one new element:
@@ -690,6 +713,15 @@ The other method to implement is `poll()`:
       }
 
 To create one Event object you just instantiate it. The needed type can just be obtained by a call to `getEventType()`.
+
+# Tools: Plugin generator #
+
+Above you have seen that writing a plugin is not that hard, but that it still needs a lot of work to
+get the basic environment like plugin descriptor skeleton, maven-pom-file and directory structure in place.
+RHQ project has a plugin generator, which asks you some questions and will then generate a plugin
+with some dummy values, which you can then load into your development environment and continue
+working with.
+
 
 
 # Tools : Standalone plugin container #
