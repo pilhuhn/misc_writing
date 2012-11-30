@@ -649,7 +649,7 @@ We have seen the MeasurementFacet in the previous articles. In this section I wi
 
 ## ConfigurationFacet ##
 
-This facet indicates that the plugin is able to read and write the configuration of a managed resource. It goes hand in hand with `<resource-configuration> in the plugin descriptor. As I've stated above, the code to create a new managed resource from scratch needs to be on the parent resource, so it is a good idea to write plugins that use the ConfigurationFacet in a way that they have a parent resource for the subsystem and children for individual resources. You can find an example for this in the JbossAS plugin when looking at the JbossMessaging subsystem and the individual JMS destinations.
+This facet indicates that the plugin is able to read and write the configuration of a managed resource. It goes hand in hand with `<resource-configuration>` in the plugin descriptor. As I've stated above, the code to create a new managed resource from scratch needs to be on the parent resource, so it is a good idea to write plugins that use the ConfigurationFacet in a way that they have a parent resource for the subsystem and children for individual resources. You can find an example for this in the JbossAS plugin when looking at the JbossMessaging subsystem and the individual JMS destinations.
 
 ## OperationFacet ##
 
@@ -722,6 +722,92 @@ RHQ project has a plugin generator, which asks you some questions and will then 
 with some dummy values, which you can then load into your development environment and continue
 working with.
 
+You can download the generator from RHQ's presence on [SourceForge](http://sourceforge.net/projects/rhq/files/rhq/plugin-generator/) or build it
+from source in the RHQ source.
+
+
+## Sample run
+
+You can just start the plugin generator via `java -jar`. It will then
+prompt you with a number of questions, where some have a default like 'n' in '(y/N)', that you can apply by pressing return.
+
+    $ java -jar target/rhq-pluginGen-4.5.0-SNAPSHOT.jar 
+    
+First we need to determine the resource category of the root type in the plugin.
+
+    Please specify the plugin root category PLATFORM(P), SERVER(S), SERVICE(I), s
+Next we need to give the name of the base type of the plugin, which is also taken as the directory name of the plugin, the package for the plugin's classes as well as the base directory into which our plugin will be written.
+
+    Please specify its Name: jmxdemo
+    Please specify its PackagePrefix: org.rhq.plugins
+    Please specify its FileSystemRoot: /im/rhq/modules/plugins
+    
+Finally you need to provide the class names of the component and discovery classes of the plugin. 
+    
+    Please specify its ComponentClass: DemoComponent
+    Please specify its DiscoveryClass: DemoDiscovery
+    
+From here on, the generator asks for support of the various facets and
+will then create respective entries in the plugin descriptor, as well
+as in generated code artefacts.    
+    
+    Please specify if it should support Events (y/N): 
+    Please specify its ParentType: MBeanResourceComponent
+    Please specify if it should support HasMetrics (y/N): 
+    Please specify if it should support HasOperations (y/N): 
+    Please specify if it should support Singleton (y/N): 
+    Please specify if it should support ResourceConfiguration (y/N): 
+    Please specify if it should support SupportFacet (y/N): 
+    Please specify if it should support CreateChildren (y/N): 
+    Please specify if it should support UsesExternalJarsInPlugin (y/N): 
+    Please specify if it should support DeleteChildren (y/N): 
+    Please specify if it should support ManualAddOfResourceType (y/N): 
+    Please specify if it should support UsePluginLifecycleListenerApi (y/N): 
+    
+If your plugin needs JMX to talk to the managed resource, you can use the JMX-plugin for RHQ that helps you with connecting to the JMX server etc.    
+    
+    Please specify if it should support DependsOnJmxPlugin (y/N): y
+
+Finally you need to provide some more information about the plugin
+itself like the version of RHQ to build with, the name as it shows up in the UI and some descriptions.
+    
+    Please specify its RhqVersion: 4.5.0-SNAPSHOT
+    Please specify its PluginName: rhq-jmxdemo
+    Please specify its PluginDescription: Test for local JMX connections
+    Please specify its Description: Test JDK6 jmx connections
+    
+    Do you want to add a child to jmxdemo? (y/N) n
+    
+If you choose to add a child resource type to the above, you need to proide
+the Facet and other information about the child type. Otherwise the generator
+will continue, print a summary of your input and then generate the
+artefacts.
+    
+    Aug 23, 2012 2:32:11 PM org.rhq.helpers.pluginGen.PluginGen run
+    INFO: 
+    You have chosen:
+    Props{category=SERVER, name='jmxdemo', description='Test JDK6 jmx connections', packagePrefix='org.rhq.plugins', pkg='null', discoveryClass='DemoDiscovery', componentClass='DemoComponent', parentType='MBeanResourceComponent', fileSystemRoot='/im/rhq/modules/plugins', monitoring=false, operations=false, metricProps=[], operationProps=[], singleton=false, resourceConfiguration=false, events=false, supportFacet=false, createChildren=false, deleteChildren=false, usesExternalJarsInPlugin=false, manualAddOfResourceType=false, usePluginLifecycleListenerApi=false, dependsOnJmxPlugin=true, rhqVersion='4.5.0-SNAPSHOT', children=[], simpleProps=[], templates=[], runsInsides=[]}
+    Aug 23, 2012 2:32:11 PM org.rhq.helpers.pluginGen.PluginGen generate
+    INFO: Generating...
+    Aug 23, 2012 2:32:11 PM org.rhq.helpers.pluginGen.PluginGen createFile
+    INFO: Trying to generate /im/rhq/modules/plugins/jmxdemo/pom.xml
+    Aug 23, 2012 2:32:11 PM org.rhq.helpers.pluginGen.PluginGen createFile
+    INFO: Trying to generate /im/rhq/modules/plugins/jmxdemo/src/main/resources/META-INF/rhq-plugin.xml
+    Aug 23, 2012 2:32:12 PM org.rhq.helpers.pluginGen.PluginGen createFile
+    INFO: Trying to generate /im/rhq/modules/plugins/jmxdemo/src/main/java/org/rhq/plugins/jmxdemo/DemoDiscovery.java
+    Aug 23, 2012 2:32:12 PM org.rhq.helpers.pluginGen.PluginGen createFile
+    INFO: Trying to generate /im/rhq/modules/plugins/jmxdemo/src/main/java/org/rhq/plugins/jmxdemo/DemoComponent.java
+    Aug 23, 2012 2:32:12 PM org.rhq.helpers.pluginGen.PluginGen generate
+    INFO: Done ..
+    
+When it is done, it will also remind you of some next steps.
+    
+    Don't forget to 
+      - add your plugin to the parent pom.xml if needed
+      - edit pom.xml of your plugin
+      - edit rhq-plugin.xml of your plugin
+
+At this point you will have a plugin fragment that you can then load into your editor and start coding.
 
 
 # Tools : Standalone plugin container #
@@ -738,9 +824,10 @@ and then issue commands in an interactive shell.
 
 To start the standalone PC, you change into the agent directory, copy your plugin into the `plugins` subdirectory and then call
 
-    bin/standalone-pc.sh
+    $ bin/standalone-pc.sh
 
-in the agent directory[^1], which will print a few messages about loading plugins and then wait at a command prompt:
+in the agent directory[^1], which will print a few messages about loading plugins and then wait at a command prompt. If your plugin does not show up in the printed list, it has probably some errors in the plugin descriptor. You
+can find out by looking at the agent log in `logs/agent.log`.
 
 
     hrupp$ bin/standalone-pc.sh 
