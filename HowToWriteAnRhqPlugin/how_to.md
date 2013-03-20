@@ -605,11 +605,11 @@ Often when you want to discover resources, they are not virtual like the remote 
 
 ### Process-scans in the plugin descriptor ###
 
-As you have seen in the structural diagram of the plugin descriptor, each of platform/server/service can have `<process-scan>` elements. The element itself is empty, but has two required attributes: _name_ and _query_. Name just names this specific scan method. Query is the interesting part. It is a string written in PIQL (Process Info Query Language), which is documented in the JavaDoc to its class. I don‘t want to go into detail here and just show two queries. Visit the page just mentioned to learn more.
+As you have seen in the structural diagram of the plugin descriptor, each of platform/server/service can have `<process-scan>` elements. The element itself is empty, but has two required attributes: _name_ and _query_. Name just names this specific scan method. Query is the interesting part. It is a string written in PIQL (Process Info Query Language), which is documented in the JavaDoc to its class. I don‘t want to go into detail here and just show three example queries. Visit the page just mentioned to learn more.
 
 **Query 1: find a JBossAS**
 
-    Process|basename|match=^java.*,arg|org.jboss.Main|match=.*
+    process|basename|match=^java.*,arg|org.jboss.Main|match=.*
 
 We want to query for a process, whose name is starting with java and which has an argument of org.jboss.Main – a Jboss Server. The matching entry from ps is:
 
@@ -625,6 +625,31 @@ Here the program id is stored in a file in a well known place
     process|pidfile|match=/etc/product/lock.pid
 
 PIQL will take the pid from `/etc/product/lock.pid` and search for a process with that id
+
+**Query 3: find a process by a certain command line argument**
+
+We now try to find processes that have `-Djava.awt.headless` as argument.
+
+    arg|*|match=.*-Djava.awt.headless=true.*
+
+    90198 /Library/Java/JavaVirtualMachines/1.7.0u.jdk/Contents/Home/bin/java
+    94136 /Library/Java/JavaVirtualMachines/1.7.0u.jdk/Contents/Home/bin/java
+    
+In this example two matching processes were found.
+
+### Interactively testing piql queries
+
+The agent allows you to interactively test and refine piql queries at its command prompt.
+
+After the
+agent has started it will wait at the command prompt "`>`", where you can issue the piql
+query starting with the word `piql`:
+
+    > piql arg|*|match=.*-Djava.awt.headless=true.*
+    PIQL Query: [arg|*|match=.*-Djava.awt.headless=true.*]
+
+This example shows the query by argument that we have just seen in the previous
+paragraph.
 
 ## Discovery component revisited ##
 
