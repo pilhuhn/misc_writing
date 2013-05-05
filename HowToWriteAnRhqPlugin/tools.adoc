@@ -1,0 +1,317 @@
+= Tools
+
+This section describes tools around the developemnt of agent plugins.
+While the process is straightforward, there are still a lot of steps
+to consider when writing and testing the plugin.
+
+== Plugin generator 
+
+Above you have seen that writing a plugin is not that hard, but that it still
+needs a lot of work to
+get the basic environment like plugin descriptor skeleton, maven-pom-file and
+directory structure in place.
+RHQ project has a plugin generator, which asks you some questions and will then
+generate a plugin
+with some dummy values, which you can then load into your development
+environment and continue
+working with.
+
+You can download the generator from RHQ's presence on
+http://sourceforge.net/projects/rhq/files/rhq/plugin-generator/[SourceForge]
+or build it from source in the RHQ source.
+
+
+=== Sample run
+
+You can just start the plugin generator via `java -jar`. It will then
+prompt you with a number of questions, where some have a default like 'n' in
+'(y/N)', that you can apply by pressing return.
+
+    $ java -jar target/rhq-pluginGen-4.5.0-SNAPSHOT.jar 
+    
+First we need to determine the resource category of the root type in the plugin.
+
+    Please specify the plugin root category PLATFORM(P), SERVER(S), SERVICE(I),
+s
+Next we need to give the name of the base type of the plugin, which is also
+taken as the directory name of the plugin, the package for the plugin's classes
+as well as the base directory into which our plugin will be written.
+
+    Please specify its Name: jmxdemo
+    Please specify its PackagePrefix: org.rhq.plugins
+    Please specify its FileSystemRoot: /im/rhq/modules/plugins
+    
+Finally you need to provide the class names of the component and discovery
+classes of the plugin. 
+    
+    Please specify its ComponentClass: DemoComponent
+    Please specify its DiscoveryClass: DemoDiscovery
+    
+From here on, the generator asks for support of the various facets and
+will then create respective entries in the plugin descriptor, as well
+as in generated code artefacts.    
+    
+    Please specify if it should support Events (y/N): 
+    Please specify its ParentType: MBeanResourceComponent
+    Please specify if it should support HasMetrics (y/N): 
+    Please specify if it should support HasOperations (y/N): 
+    Please specify if it should support Singleton (y/N): 
+    Please specify if it should support ResourceConfiguration (y/N): 
+    Please specify if it should support SupportFacet (y/N): 
+    Please specify if it should support CreateChildren (y/N): 
+    Please specify if it should support UsesExternalJarsInPlugin (y/N): 
+    Please specify if it should support DeleteChildren (y/N): 
+    Please specify if it should support ManualAddOfResourceType (y/N): 
+    Please specify if it should support UsePluginLifecycleListenerApi (y/N): 
+    
+If your plugin needs JMX to talk to the managed resource, you can use the
+JMX-plugin for RHQ that helps you with connecting to the JMX server etc.    
+    
+    Please specify if it should support DependsOnJmxPlugin (y/N): y
+
+Finally you need to provide some more information about the plugin
+itself like the version of RHQ to build with, the name as it shows up in the UI
+and some descriptions.
+    
+    Please specify its RhqVersion: 4.5.0-SNAPSHOT
+    Please specify its PluginName: rhq-jmxdemo
+    Please specify its PluginDescription: Test for local JMX connections
+    Please specify its Description: Test JDK6 jmx connections
+    
+    Do you want to add a child to jmxdemo? (y/N) n
+    
+If you choose to add a child resource type to the above, you need to proide
+the Facet and other information about the child type. Otherwise the generator
+will continue, print a summary of your input and then generate the
+artefacts.
+    
+    Aug 23, 2012 2:32:11 PM org.rhq.helpers.pluginGen.PluginGen run
+    INFO: 
+    You have chosen:
+    Props{category=SERVER, name='jmxdemo', description='Test JDK6 jmx
+connections', packagePrefix='org.rhq.plugins', pkg='null',
+discoveryClass='DemoDiscovery', componentClass='DemoComponent',
+parentType='MBeanResourceComponent', fileSystemRoot='/im/rhq/modules/plugins',
+monitoring=false, operations=false, metricProps=[], operationProps=[],
+singleton=false, resourceConfiguration=false, events=false, supportFacet=false,
+createChildren=false, deleteChildren=false, usesExternalJarsInPlugin=false,
+manualAddOfResourceType=false, usePluginLifecycleListenerApi=false,
+dependsOnJmxPlugin=true, rhqVersion='4.5.0-SNAPSHOT', children=[],
+simpleProps=[], templates=[], runsInsides=[]}
+    Aug 23, 2012 2:32:11 PM org.rhq.helpers.pluginGen.PluginGen generate
+    INFO: Generating...
+    Aug 23, 2012 2:32:11 PM org.rhq.helpers.pluginGen.PluginGen createFile
+    INFO: Trying to generate /im/rhq/modules/plugins/jmxdemo/pom.xml
+    Aug 23, 2012 2:32:11 PM org.rhq.helpers.pluginGen.PluginGen createFile
+    INFO: Trying to generate /im/rhq/modules/plugins/jmxdemo/src/main/resources/META-INF/rhq-plugin.xml
+    Aug 23, 2012 2:32:12 PM org.rhq.helpers.pluginGen.PluginGen createFile
+    INFO: Trying to generate /im/rhq/modules/plugins/jmxdemo/src/main/java/org/rhq/plugins/jmxdemo/DemoDiscovery.java
+    Aug 23, 2012 2:32:12 PM org.rhq.helpers.pluginGen.PluginGen createFile
+    INFO: Trying to generate /im/rhq/modules/plugins/jmxdemo/src/main/java/org/rhq/plugins/jmxdemo/DemoComponent.java
+    Aug 23, 2012 2:32:12 PM org.rhq.helpers.pluginGen.PluginGen generate
+    INFO: Done ..
+    
+When it is done, it will also remind you of some next steps.
+    
+    Don't forget to 
+      - add your plugin to the parent pom.xml if needed
+      - edit pom.xml of your plugin
+      - edit rhq-plugin.xml of your plugin
+
+At this point you will have a plugin fragment that you can then load into your
+editor and start coding.
+
+
+== Standalone plugin container
+
+Above I have described how you can deploy the plugin to the server and then when
+it is deployed tell the
+agent to fetch it to also have it deployed there. Especially when you start
+writing a new plugin, this
+process is tedious and slow.
+
+Luckily there is a way you can test the functionality of the plugin classes
+without the need to deploy it to the server (If you need to see how things
+render on the server, you still need to deploy it there though). The 
+_standalone plugin container_ allows you to just load the plugin you want to
+test (plus its dependencies)
+and then issue commands in an interactive shell.
+
+=== Sample run 
+
+To start the standalone PC, you change into the agent directory, copy your
+plugin into the `plugins` subdirectory and then call
+
+    $ bin/standalone-pc.sh
+
+in the agent directory
+footnote:[Before RHQ 4.5, this command was not installed by default in the
+agent's bin directory, but only in the sources under `etc/standalone-pc/`
+directory or on sourceforge at
+http://sourceforge.net/projects/rhq/files/rhq/standalone-container/ .], which
+will print a few messages about loading plugins and then wait at a command
+prompt. If your plugin does not show up in the printed list, it has probably
+some errors in the plugin descriptor. You
+can find out by looking at the agent log in `logs/agent.log`.
+
+
+    hrupp$ bin/standalone-pc.sh 
+    
+    Starting the plugin container.
+    Loading plugins
+    ...Loaded plugin: HttpCheck
+    ...Loaded plugin: Platforms
+    
+    Ready.
+    [0]:0 >
+
+The command prompt now waits for your input. The number in the square brackets
+is the number of the current command. The number after the colon a resource id;
+we will see that in more detail later. To see a list of commands, you can type
+`help`, which shows a list of commands, their abbreviation, possible arguments
+and a short description.
+
+One of the first things you want to do here is to discover resources
+
+    [0]:0 > disc all
+    Discovery took: 5408ms
+    [Resource[id=-25, uuid=b1f......
+
+To select a resource and to issues specific commands to it, you can set it's id:
+
+    [1]:0 > set id -2
+    [2]:-2 res
+    Resource[id=-2, uuid=2eb2ef5b-9ad4-444b-a1a4-4cced69ff34f,
+      type={Platforms}Mac OS X, key=snert, name=snert, parent=<null>,
+      version=MacOSX 10.7.4]
+    [3]:-2 > m -list
+    Native.MemoryInfo.used : MEASUREMENT, The total used system memory
+      (does not include buffer or cache memory)
+    Native.MemoryInfo.actualUsed : MEASUREMENT, The actual total used system
+      memory (includes buffer and cache memory)
+    CpuPerc.sys : MEASUREMENT, Percentage of all CPUs running in system mode
+    CpuPerc.user : MEASUREMENT, Percentage of all CPUs running in user mode
+    [4]:-2 > m m CpuPerc.user MeasurementDataNumeric[name=CpuPerc.user,
+       value=0.1188118811881188, scheduleId=1, timestamp=1342878190137]
+
+In step 1, we selected resource id -2, then issued the `res` command to see
+specifics of the resource. In step 3,
+we inquired the list of metrics and in step 4 queried the value of the metric
+with the name `CpuPer.user`. The first 'm' in the command is the command name
+monitor, the second means that this is a metric.
+
+=== Getting and setting the plugin configuration 
+
+Above we have seen how to set the URL for the target to monitor. You can also
+inspect and set those
+values from the standalone container by running the __pc__ and __pcs__ commands:
+
+    [5]:-2 > pc
+    PropertyList[id=0, name=logs, list=[]]
+    [6]:-2 > pcs logs=bla
+    [7]:-2 > pc
+    PropertySimple[id=0, name=logs, value=bla, override=null]
+    
+
+=== Command history 
+
+When using the standalone-pc, you often want to repeat a command given. For this
+purpose a csh-like
+command syntax exists. Issuing `!h` gives you an overview of existing commands.
+
+To dispay the history you give `!?`:
+
+    [8]:-2 > !?
+    [0]: res
+    [1]: set id -2
+    [2]: m -list
+    [3]: m m CpuPerc.user
+
+To re-run command 2 you say `!2`; to just re-run the last command, you can
+simply type `!!`.
+
+=== Recording and replaying of commands 
+
+As you have just seen, the system keeps a list of commands issued. You can write
+that list of commands 
+to a file via `!w <filename>`. When you then start the container with that
+filename as argument, it will
+re-run the commands from the file.
+
+    bin/standalone-pc.sh <filename>
+    
+When the standalone container has run all the commands, it will just shut down.
+In many times when developing
+a new plugin, you want to continue issuing commands and for example check the
+executed plugin code in the
+debugger. To achieve this, add a `stdin` command before writing the file (or
+edit the generated file afterwards).
+
+== Plugin verification 
+
+During development process you will often change items in the plugin descriptor
+and your java classes and
+if you make a mistake, you will only find out when you deploy the plugin to the
+server (or the standalone
+container). Actually there is a way to run a basic verification of the plugin.
+This checks some basic properties like the syntactical 
+correctness of the plugin descriptor and if the classes that are denoted as
+discovery and component
+classes can be found and loaded by the plugin classloaders.
+
+=== Standalone usage
+
+To run the verification you can change into the agent directory and run
+`bin/plugin-validator.sh`
+footnote:[This standalone way is available from RHQ 4.5 on. Before 4.5 only the
+batch check when building all the plugins is available.]
+with the plugin-jar as argument like this:
+
+    $bin/plugin-validator.sh $DEV/modules/plugins/httpcheck/target/httpcheck-plugin.jar
+    !OK!
+
+If you made an error, the result will be `!FAILED`. In addition error and
+warning messages are printed on the
+console. More comprehensive logging will written to the agent log
+file at `log/agent.log`.
+
+If you have written a plugin that depends on other plugins, you need to provide
+them all on the command line.
+
+
+=== As Part of the build
+
+If you have checked out the whole RHQ source tree, you can add your plugin to
+the list of plugins to be verified
+when a build of the plugins happens. This verification step checks some basic
+properties like the syntactical 
+correctness of the plugin descriptor and if the classes that are denoted as
+discovery and component
+classes can be found and loaded by the plugin classloaders.
+
+To do this, you need to add your plugin to the list in
+`modules/plugins/validate-all-plugins/pom.xml`:
+
+    <plugin>
+      <artifactId>maven-antrun-plugin</artifactId>
+      <executions>
+        <execution>
+          <phase>integration-test</phase>
+          <configuration>
+            <target>
+              <property name="test.classpath" refid="maven.test.classpath" />
+              <echo>Validating plugins...</echo>
+              <java classname="org.rhq.core.pc.plugin.PluginValidator"
+                  failonerror="true" fork="true">
+                <classpath>
+                  <pathelement path="${test.classpath}" />
+                  <pathelement 
+                    location="../apache/target/rhq-apache-plugin-${project.version}.jar" />
+                  <!-- as in the next line  vvvvv  -->
+                  <pathelement
+                    location="../httpcheck/target/httpcheck-plugin-${project.version}.jar" />
+                  <!-- ^^^^^^ -->
+
+You just add the path to your plugin to the list of `<pathelement>` elements as
+shown above.
+

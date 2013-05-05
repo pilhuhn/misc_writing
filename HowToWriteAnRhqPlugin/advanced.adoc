@@ -1,0 +1,263 @@
+= Advanced topics
+
+In this part we see some more advanced topics that you don't need
+when starting to write a plugin or to just follow the example.
+
+== Things to consider when writing a plugin 
+
+Now that you have seen how to write a plugin, lets have a short break to discuss
+a few things to consider when writing a plugin. 
+
+The method `getValues()` from the `MeasurementFacet` is called from the plugin
+container in intervals given by the user. This is usually something in the
+minutes range, but could be shorter. As the container tries to call
+`getValues()` for all metrics of a resource (that are due for metric collection)
+at once, it means that taking a single metric can only take (interval / number
+of resources) time at maximum. So make gathering the metrics fast. If directly
+taking a metric takes a long time (e.g. because a connection to a resource needs
+to be established first), consider to start an own measurement thread that is
+taking the data and putting it into local storage and then have `getValues()`
+just read out the local storage.
+
+Another thing to consider is the grouping of resource types:  when yo plan on
+having multiple items of one category (e.g. multiple http servers to check),
+then its good to have a parent for all of those, like the HttpComponent above.
+This is also good practice if you plan on implementing the addition of new child
+resources, as the create code needs to be in the parent (HttpComponent for
+HttpServices).
+
+=== Decomposing Plugins 
+When you try to manage larger systems like the JBoss Application Server with all
+its subsystems like Cache, Transactions, JBossWeb etc. your plugin might get
+relatively large to support all this. In this posting I will show you how to
+decompose a large(r) plugin into smaller ones that all together allow you to
+manage the large(r) system.
+
+This decomposition not only allows you to more easily distribute the development
+load, but also enables re-use of the parts that have been broken out of the big
+chunk. The price you have to pay is relatively small and consists mostly of some
+additional directories and a maven pom.xml file (that I am not going to show
+here).
+
+The basic trick is to use `<depends>` and `<runs-inside>` tags in your plugin
+descriptor for this new plugin:
+
+      <plugin name="JBossCache" ... >
+         <depends plugin="JMX" />
+         <depends plugin="JBossAS" useClasses="true"/>
+
+So we need the JMX plugin and the JBossAS plugin being deployed before our
+plugin can start. The attribute _useClasses_ means that the classloader of our
+plugin gets access to the classes of the other plugin (JBossAs here). So we can
+use those classes too.
+
+      <service name="JBoss Cache" ...>
+
+As you know from previous posts, a service can't just "hang in the air" - it
+needs another server or service as a container. This is where runs-inside comes
+into play:
+
+       <runs-inside>
+         <parent-resource-type name="JBossAS Server" plugin="JBossAS"/>
+      </runs-inside>
+
+So our plugin service "JBoss Cache" will be contained in resources of type
+"JBossAS Server" that come from the JBossAS plugin (that we declared in the
+depends element earlier).
+
+Apart from this little magic in the plugin descriptor, there is no more
+additional work to do.
+
+=== Using Process scans for discovery 
+
+Often when you want to discover resources, they are not virtual like the remote
+http servers in our examples, but processes on the local machine. The RHQ agent
+offers through its SIGAR library to query the process table in order to detect
+those resources. As you may have guessed, this involves the plugin descriptor,
+so lets have a look at this first before going to the discovery component
+
+==== Process-scans in the plugin descriptor 
+
+As you have seen in the structural diagram of the plugin descriptor, each of
+platform/server/service can have `<process-scan>` elements. The element itself
+is empty, but has two required attributes: _name_ and _query_. Name just names
+this specific scan method. Query is the interesting part. It is a string written
+in PIQL (Process Info Query Language), which is documented in the JavaDoc to its
+class. I don‘t want to go into detail here and just show three example
+queries. Visit the page just mentioned to learn more.
+
+**Query 1: find a JBossAS**
+
+    process|basename|match=^java.*,arg|org.jboss.Main|match=.*
+
+We want to query for a process, whose name is starting with java and which has
+an argument of org.jboss.Main – a Jboss Server. The matching entry from ps is:
+
+    hrupp     2035   0.0 -1.5   724712  30616  p7  S+    9:49PM   0:01.61 java -Dprogram.name=run.sh 
+     -Xms128m 
+     -Xmx512m -Dsun.rmi.dgc.client.gcInterval=3600000 -Dsun.rmi.dgc.server.gcInterval=3600000 
+     -Djboss.platform.mbeanserver -Djava.endorsed.dirs=/devel/jboss-4.0.5.GA/lib/endorsed -classpath 
+     /devel/jboss-4.0.5.GA/bin/run.jar:/lib/tools.jar org.jboss.Main -c minimal
+    
+**Query 2: find a process by its pid**
+
+Here the program id is stored in a file in a well known place
+    process|pidfile|match=/etc/product/lock.pid
+
+PIQL will take the pid from `/etc/product/lock.pid` and search for a process
+with that id
+
+**Query 3: find a process by a certain command line argument**
+
+We now try to find processes that have `-Djava.awt.headless` as argument.
+
+    arg|*|match=.*-Djava.awt.headless=true.*
+
+    90198 /Library/Java/JavaVirtualMachines/1.7.0u.jdk/Contents/Home/bin/java
+    94136 /Library/Java/JavaVirtualMachines/1.7.0u.jdk/Contents/Home/bin/java
+    
+In this example two matching processes were found.
+
+==== Interactively testing piql queries
+
+The agent allows you to interactively test and refine piql queries at its
+command prompt.
+
+After the
+agent has started it will wait at the command prompt "`>`", where you can issue
+the piql
+query starting with the word `piql`:
+
+    > piql arg|*|match=.*-Djava.awt.headless=true.*
+    PIQL Query: [arg|*|match=.*-Djava.awt.headless=true.*]
+
+This example shows the query by argument that we have just seen in the previous
+paragraph.
+
+== Discovery component revisited 
+
+Ok, now that we have seen what we can do with the `<process-scan>` in the plugin
+descriptor, lets see how we can process that info. And .. as you may have
+already expected this is again very simple:
+
+    List<ProcessScanResult> autoDiscoveryResults =
+        context.getAutoDiscoveredProcesses(); 
+    for (ProcessScanResult result : autoDiscoveryResults) { 
+        ProcessInfo procInfo = result.getProcessInfo();
+               ....
+        // as before
+        DiscoveredResourceDetails detail = 
+            new DiscoveredResourceDetails( resourceType, key, name, null,
+                 description, childConfig, procInfo );
+        result.add(detail);
+       }
+
+So basically you jut need to obtain the list of resources discovered by process
+scan (auto discovered as opposed to a manual add) and create the
+`DiscoveredResourceDetails` as before. You can use ProcessInfo to get more
+information about the process and to even decide not to include it in the list
+of auto discovered resources (imagine, the PIQL query would have looked for
+processes where the name starts with post. This would apply to postgres and
+postmaster. Here you could still filter the ones you really want.
+
+== A few more Facets 
+We have seen the MeasurementFacet in the previous articles. In this section I
+will briefly mention the other kinds of facets, so that you can get an idea what
+plugins are capable to do.
+
+=== ConfigurationFacet 
+
+This facet indicates that the plugin is able to read and write the configuration
+of a managed resource. It goes hand in hand with `<resource-configuration>` in
+the plugin descriptor. As I've stated above, the code to create a new managed
+resource from scratch needs to be on the parent resource, so it is a good idea
+to write plugins that use the ConfigurationFacet in a way that they have a
+parent resource for the subsystem and children for individual resources. You can
+find an example for this in the JbossAS plugin when looking at the
+JbossMessaging subsystem and the individual JMS destinations.
+
+=== OperationFacet
+
+An operation allows you to invoke functionality on the managed resource. This
+could be a restart operation or whatever you want to invoke on a target.
+Operations are described in `<operation>` elements in the plugin descriptor.
+They can have argument and return values.
+
+=== ContentFacet
+
+This facet allows the uploading content like files or archives into the managed
+resource. That way it is possible to centrally manage software distribution into
+managed resources. There exists a `<content>` element as counterpart.
+
+=== Events
+
+Events are a way to inject asynchronous data into the RHQ server. One example of
+Events within RHQ
+is the gathering and parsing of logfiles. Events are a little bit like traits.
+The difference here is that one Event definition can match multiple event
+sources and that the number of Events that are delivered to the RHQ server can
+be different each time the polling for Events is called.
+Events are processed by EventPollers – a method that gets called at a regular
+interval by the PluginContainer and which delivers one or more Events back into
+the system.
+Two samples for EventPollers are the Logfile pollers, that check for new
+matching lines in logfiles and the snmptrapd plugin that I will describe now.
+The plugin descriptor is mostly as we know it already. There is now one new
+element:
+
+    <event name=“SnmpTrap“ description=“One single incoming trap“/>
+
+The important part here is the name attribute, as we will need its content later
+again. The name is the key into the EventDefinition object.
+
+=== Plugin Component 
+
+In the plugin component, we are using start() and stop() to start and stop
+polling for events:
+
+    public void start(ResourceContext context) throws
+InvalidPluginConfigurationException, Exception {
+     
+        eventContext = context.getEventContext(); 
+        snmpTrapEventPoller = new SnmpTrapEventPoller(); 	
+        eventContext.registerEventPoller(snmpTrapEventPoller, 60);
+
+So first we are getting an EventContext from the passed ResourceContext,
+instantiate an EventPoller and register this Poller with the EventContext (60 is
+the number of seconds between polls).
+The plugin container will start its timer when this registration is done.
+In `stop()` we just unregister the poller again:
+
+   eventContext.unregisterEventPoller(TRAP_TYPE);
+   
+TRAP_TYPE is the ResourceType name as String – we will see this again in a
+second.
+
+The remainder of this class is nothing special and if you have read the plugin
+development series, it should actually be no news at all.
+
+=== Event Poller 
+This class is the only real new piece in the game.
+
+    public class SnmpTrapEventPoller implements EventPoller {
+    
+Implementing EventPoller means to implement two methods:
+    
+      public String getEventType() {
+        return SnmpTrapdComponent.TRAP_TYPE;
+      }
+
+Here we return the content of the name attribute from the `<event>` tag of the
+plugin descriptor. The plugin will not start if they don‘t match.
+
+The other method to implement is `poll()`:
+
+      public Set<Event> poll() {
+        Set<Event> eventSet = new HashSet<Event>();
+                  ...
+        return eventSet;
+      }
+
+To create one Event object you just instantiate it. The needed type can just be
+obtained by a call to `getEventType()`.
+
