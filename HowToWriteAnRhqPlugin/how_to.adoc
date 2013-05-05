@@ -1,14 +1,26 @@
 = How to write a(n agent) plugin for RHQ and JBoss ON? 
 Heiko W. Rupp <heiko.rupp@redhat.com>
 :toc:
+:doctype: book
 :imagesdir: assets
 :homepage: http://jboss.org/rhq/
+:license: cc-by-sa 3.0
 
 
-Preface:
-This document builds on a series of blog postings I made on my blog at <http://pilhuhn.blogspot.com/search/label/RHQ> . This blog also features other JBoss ON, RHQ and plugin related content that is not contained here. While this document also applies to JBoss Operations Network (JBoss ON), I usually will just talk about RHQ.
+[preface]
+== Preface
+This document builds on a series of blog postings I made on my blog at <http://pilhuhn.blogspot.com/search/label/RHQ>.
+This blog also features other JBoss ON, RHQ and plugin related content that is not contained here. While this document
+also applies to JBoss Operations Network (JBoss ON), I usually will just talk about RHQ.
 
 Please contact me or my colleagues if you have questions or suggestions.
+
+CAUTION: This document is a best effort attempt into describing the process of writing agent plugins for RHQ. 
+This document may contain errors or omissions. The author assumes no liability.
+
+NOTE: This document is released under a Creative Commons 3.0  BY-SA license.
+
+Of course comments, bug fixes and additions are welcome.
 
 
 == Introduction
@@ -31,7 +43,7 @@ image::rhq_arch.png[RHQ Architecture]
 
 Agents do not have a fixed (read as in compile-time) functionality, but can be extended through plugins which we will see below. Usually there is one agent running per machine with resources to manage. The RHQ server itself is able to run an agent embedded in the server. This is mostly for demo and test scenarios, but it is well able to monitor the server machine.
 
-== Server services
+=== Server services
 
 The server hosts a number of services like:
 
@@ -46,7 +58,7 @@ The server hosts a number of services like:
 Some of those services are reflected in the agent like inventory syncing, gathering of measurement data or running operations on a managed resource, while alert processing or hosting of the GUI is purely on the server.
 Note, that a RHQ server never directly talks to a managed resource. Only agents (or better: their plugins) talk to managed resources.
 
-== Agent architecture
+=== Agent architecture
 
 The agent is sort of a container that hosts some common functionality like the communication interface with the server, logging, starting and stopping of plugins, reading configuration files or spooling data in case the server is not reachable. It is also handling of the command line and interactive command prompt. 
 
@@ -56,7 +68,7 @@ image::agent_arch.png[Agent architecture]
 
 The agent also hosts its it is local view of the inventory (see next section) for the resources it knows.
 
-== Central functionality: Inventory
+=== Central functionality: Inventory
 
 The central piece of functionality in RHQ is the inventory. Each resource that you want to manage or monitor must be present in that inventory. RHQ has mechanisms to auto detect and also manually add resources. We‘ll come back to that later when we are talking about implementing plugins.
 Each `org.rhq.core.domain.resource.Resource` has a certain `org.rhq.core.domain.resource.ResourceCategory`:
@@ -92,6 +104,7 @@ In order to write our plugin we basically need three things:
 
 So lets have a look into those three parts.
 
+[[ref-pd-main]]
 === Plugin descriptor 
 
 The plugin descriptor is described by an XML Schema that you can find in the subversion repository. The basic structure is as follows:
@@ -351,7 +364,7 @@ We define our plugin as a Server. From the intuition it could be a Service, but 
 Now the two metrics. With all the knowledge you have now, they are nothing special anymore.
 Again, `responseTime` is modeled as numerical data, while the status is modeled as trait. This could have been done differently, but is done here for educational purposes :-)
 
-=== Ready, steady, go ... 
+== Ready, steady, go ... 
 
 To compile the plugin, go to the root of the plugin tree and do mvn -Pdev install
 The dev mode allows maven to automatically deploy the plugin to a server instance as described on the Advanced Built Notes page on the RHQ-Wiki.
@@ -377,7 +390,7 @@ The next step is to make the plugin available to the agent. Remember that the ag
     The plugin container has been started.
     > 
 
-If you now log into the GUI at [http://localhost:7080/]() and go to Inventory->Discovery Queue you import the new server into Inventory.
+If you now log into the GUI at http://localhost:7080/ and go to Inventory->Discovery Queue you import the new server into Inventory.
 
 image::discovery_queue.png[Discovery Queue]
 
@@ -401,7 +414,8 @@ I have made the source code of those articles available as zip archive, that you
 == Enhancing the plugin 
 
 We have just built our first RHQ plugin. This was working great, but hardcoding the target URL is not really elegant. I will now show you how to make the target URLs configurable from the GUI.
-To do this we need to reshuffle things a little: We will have a generic Server ‚HttpCheck‘ that servers as parent for the individual http-servers that we want to monitor. Those will live as Services under that Server. In the Server inventory we will add the possibility to manually add new http servers on the go.
+To do this we need to reshuffle things a little: We will have a generic Server ‚HttpCheck‘ that servers as parent for the individual 
+http-servers that we want to monitor. Those will live as Services under that Server. In the Server inventory we will add the possibility to manually add new http servers on the go.
 
 Note: before you continue, go to Administration->Agent plugins and remove the old plugin.
 
@@ -442,7 +456,9 @@ Last but not least, we have moved the two metrics into the service tag (so I don
 
 === A word about configuration and properties 
 
-The configuration type presented here, can be used in two forms within a plugin descriptor: plugin-configuration and resource-configuration7. Check the structure diagram in section ‚plugin descriptor‘ above to see where they belong.
+The configuration type presented here, can be used in several forms within a plugin descriptor: plugin-configuration
+and resource-configuration inside a resource type and then also inside `operation` elements.
+Check the structure diagram in section <<ref-pd-main,plugin descriptor>> above to see where they belong.
 A configuration can consist of a number of sub-elements – notably properties that are children of the abstract configurationType. This is described below.
 
 image::configuration_structure.png[Structure of configuration elements]
@@ -487,11 +503,11 @@ This example also shows a few more possibilities we have here: The port has a co
 
 These changes are – as already indicated – more or less just for clarity reasons and to clearly separate out the concerns of each component.
 
-=== Server level: HttpDiscoveryComponent 
+==== Server level: HttpDiscoveryComponent 
 
 The HttpDiscoveryComponent from above only got some minor adjustments to cater for the change in naming, so I am not showing it here – have a look at the provided sources archive for details.
 
-=== Service level: HttpServiceDiscoveryComponent 
+==== Service level: HttpServiceDiscoveryComponent 
 
 The `HttpServiceDiscoveryComponent` is more interesting, as we no longer have the hard coded keys, but we get the URL passed in from the GUI when the user is adding a new one. Here you will also see a new facet (`ManualAddFacet`), that has been introduced to support `supportsManualAdd=“true“` from the plugin descriptor.
 Let's start with the basic implementation of `ResourceDiscoveryComponent`:
@@ -539,7 +555,7 @@ is then returned.
 
 The change in plugin components in basically that the old `HttpComponent` got renamed to `HttpServiceComponent` and that we have a new „pseudo“ `HttpComponent` on server level.
 
-=== Server level - HttpComponent 
+==== Server level - HttpComponent 
 Ok, this one is – as just described – a dummy implementation, as it just provides placeholder methods from the ResourceComponent interface.
 
     public AvailabilityType getAvailability() { 
@@ -548,7 +564,7 @@ Ok, this one is – as just described – a dummy implementation, as it just pro
 
 We set the Availability to being always UP so the component can successfully start. We leave the other two methods just as empty implementations.
 
-=== Service level - HttpServiceComponent 
+==== Service level - HttpServiceComponent 
 As indicated this is more or less the old HttpComponent except for one change:
 
     public void start(ResourceContext context) throws 
@@ -572,11 +588,11 @@ The sources are again available as zip archive. Just install it like the previou
 
 Now that you have seen how to write a plugin, lets have a short break to discuss a few things to consider when writing a plugin. 
 
-The method `getValues()` from the MeasurementFacet is called from the plugin container in intervals given by the user. This is usually something in the minutes range, but could be shorter. As the container tries to call `getValues()` for all metrics of a resource (that are due for metric collection) at once, it means that taking a single metric can only take (interval / number of resources) time at maximum. So make gathering the metrics fast. If directly taking a metric takes a long time (e.g. because a connection to a resource needs to be established first), consider to start an own measurement thread that is taking the data and putting it into local storage and then have `getValues()` just read out the local storage.
+The method `getValues()` from the `MeasurementFacet' is called from the plugin container in intervals given by the user. This is usually something in the minutes range, but could be shorter. As the container tries to call `getValues()` for all metrics of a resource (that are due for metric collection) at once, it means that taking a single metric can only take (interval / number of resources) time at maximum. So make gathering the metrics fast. If directly taking a metric takes a long time (e.g. because a connection to a resource needs to be established first), consider to start an own measurement thread that is taking the data and putting it into local storage and then have `getValues()` just read out the local storage.
 
 Another thing to consider is the grouping of resource types:  when yo plan on having multiple items of one category (e.g. multiple http servers to check), then its good to have a parent for all of those, like the HttpComponent above. This is also good practice if you plan on implementing the addition of new child resources, as the create code needs to be in the parent (HttpComponent for HttpServices).
 
-== Decomposing Plugins 
+=== Decomposing Plugins 
 When you try to manage larger systems like the JBoss Application Server with all its subsystems like Cache, Transactions, JBossWeb etc. your plugin might get relatively large to support all this. In this posting I will show you how to decompose a large(r) plugin into smaller ones that all together allow you to manage the large(r) system.
 
 This decomposition not only allows you to more easily distribute the development load, but also enables re-use of the parts that have been broken out of the big chunk. The price you have to pay is relatively small and consists mostly of some additional directories and a maven pom.xml file (that I am not going to show here).
@@ -601,11 +617,11 @@ So our plugin service "JBoss Cache" will be contained in resources of type "JBos
 
 Apart from this little magic in the plugin descriptor, there is no more additional work to do.
 
-== Using Process scans for discovery 
+=== Using Process scans for discovery 
 
 Often when you want to discover resources, they are not virtual like the remote http servers in our examples, but processes on the local machine. The RHQ agent offers through its SIGAR library to query the process table in order to detect those resources. As you may have guessed, this involves the plugin descriptor, so lets have a look at this first before going to the discovery component
 
-=== Process-scans in the plugin descriptor 
+==== Process-scans in the plugin descriptor 
 
 As you have seen in the structural diagram of the plugin descriptor, each of platform/server/service can have `<process-scan>` elements. The element itself is empty, but has two required attributes: _name_ and _query_. Name just names this specific scan method. Query is the interesting part. It is a string written in PIQL (Process Info Query Language), which is documented in the JavaDoc to its class. I don‘t want to go into detail here and just show three example queries. Visit the page just mentioned to learn more.
 
@@ -639,7 +655,7 @@ We now try to find processes that have `-Djava.awt.headless` as argument.
     
 In this example two matching processes were found.
 
-=== Interactively testing piql queries
+==== Interactively testing piql queries
 
 The agent allows you to interactively test and refine piql queries at its command prompt.
 
@@ -674,19 +690,19 @@ So basically you jut need to obtain the list of resources discovered by process 
 == A few more Facets 
 We have seen the MeasurementFacet in the previous articles. In this section I will briefly mention the other kinds of facets, so that you can get an idea what plugins are capable to do.
 
-== ConfigurationFacet 
+=== ConfigurationFacet 
 
 This facet indicates that the plugin is able to read and write the configuration of a managed resource. It goes hand in hand with `<resource-configuration>` in the plugin descriptor. As I've stated above, the code to create a new managed resource from scratch needs to be on the parent resource, so it is a good idea to write plugins that use the ConfigurationFacet in a way that they have a parent resource for the subsystem and children for individual resources. You can find an example for this in the JbossAS plugin when looking at the JbossMessaging subsystem and the individual JMS destinations.
 
-== OperationFacet
+=== OperationFacet
 
 An operation allows you to invoke functionality on the managed resource. This could be a restart operation or whatever you want to invoke on a target. Operations are described in `<operation>` elements in the plugin descriptor. They can have argument and return values.
 
-== ContentFacet
+=== ContentFacet
 
 This facet allows the uploading content like files or archives into the managed resource. That way it is possible to centrally manage software distribution into managed resources. There exists a `<content>` element as counterpart.
 
-== Events
+=== Events
 
 Events are a way to inject asynchronous data into the RHQ server. One example of Events within RHQ
 is the gathering and parsing of logfiles. Events are a little bit like traits. The difference here is that one Event definition can match multiple event sources and that the number of Events that are delivered to the RHQ server can be different each time the polling for Events is called.
@@ -749,8 +765,8 @@ RHQ project has a plugin generator, which asks you some questions and will then 
 with some dummy values, which you can then load into your development environment and continue
 working with.
 
-You can download the generator from RHQ's presence on [SourceForge](http://sourceforge.net/projects/rhq/files/rhq/plugin-generator/) or build it
-from source in the RHQ source.
+You can download the generator from RHQ's presence on http://sourceforge.net/projects/rhq/files/rhq/plugin-generator/[SourceForge]
+or build it from source in the RHQ source.
 
 
 === Sample run
@@ -853,7 +869,8 @@ To start the standalone PC, you change into the agent directory, copy your plugi
 
     $ bin/standalone-pc.sh
 
-in the agent directory[^1], which will print a few messages about loading plugins and then wait at a command prompt. If your plugin does not show up in the printed list, it has probably some errors in the plugin descriptor. You
+in the agent directory
+footnote:[Before RHQ 4.5, this command was not installed by default in the agent's bin directory, but only in the sources under `etc/standalone-pc/` directory or on sourceforge at http://sourceforge.net/projects/rhq/files/rhq/standalone-container/ .], which will print a few messages about loading plugins and then wait at a command prompt. If your plugin does not show up in the printed list, it has probably some errors in the plugin descriptor. You
 can find out by looking at the agent log in `logs/agent.log`.
 
 
@@ -940,7 +957,8 @@ classes can be found and loaded by the plugin classloaders.
 
 === Standalone usage
 
-To run the verification you can change into the agent directory and run `bin/plugin-validator.sh`[^2] 
+To run the verification you can change into the agent directory and run `bin/plugin-validator.sh`
+footnote:[This standalone way is available from RHQ 4.5 on. Before 4.5 only the batch check when building all the plugins is available.]
 with the plugin-jar as argument like this:
 
     $bin/plugin-validator.sh $DEV/modules/plugins/httpcheck/target/httpcheck-plugin.jar
@@ -984,16 +1002,16 @@ You just add the path to your plugin to the list of `<pathelement>` elements as 
 
 == More information on Plugins 
 
-The RHQ wiki now hosts a plugin community page that shows available plugins: RHQ Plugin Community at <https://docs.jboss.org/author/display/RHQ/Plugin+Community>.
+The RHQ wiki now hosts a plugin community page that shows available plugins: RHQ Plugin Community
+at https://docs.jboss.org/author/display/RHQ/Plugin+Community.
 
 Check it out for any updates about plugin related information – including lists of new plugins.
 
-RHQ developers can be reached in #rhq on irc.freenode.net, development forums are hosted on <https://community.jboss.org/en/rhq/>
+RHQ developers can be reached in *#rhq* on irc://irc.freenode.net, development forums are hosted
+on https://community.jboss.org/en/rhq/
 
 == About the author 
-Heiko W. Rupp is developer at Red Hat in the area of RHQ and JBoss ON. He contributed to Jboss AS and other open source projects in the past and wrote the first German JBoss book and one of the first German books on EJB3. He lives with his family in Stuttgart, Germany.
-
-
-[^1]: Before RHQ 4.5, this command was not installed by default in the agent's bin directory, but only in the sources under `etc/standalone-pc/` directory or on sourceforge at <http://sourceforge.net/projects/rhq/files/rhq/standalone-container/>.
-
-[^2]: This standalone way is available from RHQ 4.5 on. Before 4.5 only the batch check when building all the plugins is available.
+Heiko W. Rupp is developer at Red Hat in the area of RHQ and JBoss ON.
+He contributed to JBoss AS and other open source projects in the past
+and wrote the first German JBoss book and one of the first German books on EJB3.
+He lives with his family in Stuttgart, Germany.
