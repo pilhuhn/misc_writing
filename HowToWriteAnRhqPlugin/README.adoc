@@ -1,0 +1,20 @@
+= How To write an agent plugin
+
+This directory contains a paper that describes how to 
+write an agent plugin for http://jboss.org/rhq[RHQ].
+
+You can find the start in the file `how_to.adoc`,
+which includes the other files.
+
+Unfortunately the preview on GitHub does not allow
+to use the `include::` directive, so the how to is
+not fully rendered.
+
+To view the full paper or to print it, clone the 
+repo and run
+
+`asciidoctor how_to.adoc`
+
+Asciidoctor, an Asciidoc processor written in Ruby is
+available from https://github.com/ascidoctor/asciidoctor .
+You can also install it as a Ruby gem
