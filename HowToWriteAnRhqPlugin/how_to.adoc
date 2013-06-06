@@ -26,15 +26,13 @@ NOTE: This document is released under a Creative Commons 3.0  BY-SA license.
 
 Of course comments, bug fixes and additions are welcome.
 
-
 == Introduction
 
 RHQ Project is the foundation of a powerful open source system management suite.
 It builds the framework for other management applications like JBoss ON.
-
-Red Hat and Hyperic released Project RHQ in the open in February 2008 and we
-released the first GA version of RHQ together with JBossON 2.0 that is built on
-top of RHQ at JavaOne 2008.
+While there is a core set of functionality, the capabilities to manage individual
+kinds of target resources is not hard coded into RHQ, but can (or must) be provided
+by _plugins_.
 
 This paper will try to show how to write your own plugins for RHQ. This could be
 „bare metal“ plugins to e.g. determine free disk space or process
@@ -80,7 +78,8 @@ The server hosts a number of services like:
 
 Some of those services are reflected in the agent like inventory syncing,
 gathering of measurement data or running operations on a managed resource, while
-alert processing or hosting of the GUI is purely on the server.
+alert processing or hosting of the GUI is purely on the server. 
+
 Note, that a RHQ server never directly talks to a managed resource. Only agents
 (or better: their plugins) talk to managed resources.
 
@@ -147,9 +146,15 @@ at https://docs.jboss.org/author/display/RHQ/Plugin+Community.
 Check it out for any updates about plugin related information – including
 lists of new plugins.
 
+== About RHQ
+
+Red Hat and Hyperic released Project RHQ in the open in February 2008 and we
+released the first GA version of RHQ together with JBossON 2.0 that is built on
+top of RHQ at JavaOne 2008.
+
 RHQ developers can be reached in *#rhq* on irc://irc.freenode.net, development
-forums are hosted
-on https://community.jboss.org/en/rhq/
+forums are hosted on https://community.jboss.org/en/rhq/ and the homepage is
+http://jboss.org/rhq/.
 
 == About the author 
 Heiko W. Rupp is developer at Red Hat in the area of RHQ and JBoss ON.
