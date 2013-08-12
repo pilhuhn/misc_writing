@@ -5,6 +5,8 @@ Heiko W. Rupp <heiko.rupp@redhat.com>
 :imagesdir: assets
 :homepage: http://jboss.org/rhq/
 :license: cc-by-sa 3.0
+:author: Heiko W. Rupp
+:encoding: iso-8859-1
 
 
 [preface]
@@ -35,14 +37,14 @@ kinds of target resources is not hard coded into RHQ, but can (or must) be provi
 by _plugins_.
 
 This paper will try to show how to write your own plugins for RHQ. This could be
-„bare metal“ plugins to e.g. determine free disk space or process
+"bare metal" plugins to e.g. determine free disk space or process
 availability. It could also be a plugin that determines the number and volume of
 orders flowing through your web shop.
 
 As an example scenario the plugin will try to reach a http server, see if the
 base URL is available and return the status code + the time it took to reach it.
 We will first write a simple version and enhance it afterwards. At the end
-I‘ll be talking about some additional topics around plugin development. But
+I'll be talking about some additional topics around plugin development. But
 before we come to this, lets have a look at the environment.
 
 == General architecture of RHQ
@@ -103,7 +105,7 @@ for the resources it knows.
 
 The central piece of functionality in RHQ is the inventory. Each resource that
 you want to manage or monitor must be present in that inventory. RHQ has
-mechanisms to auto detect and also manually add resources. We‘ll come back to
+mechanisms to auto detect and also manually add resources. We'll come back to
 that later when we are talking about implementing plugins.
 Each `org.rhq.core.domain.resource.Resource` has a certain
 `org.rhq.core.domain.resource.ResourceCategory`:
@@ -126,7 +128,7 @@ So at the end this will result in a tree of resources with the Linux platform as
 its root.
 In addition to the category each Resource also is of a certain
 `org.rhq.core.domain.resource.ResourceType`. For a platform this might e.g.
-„Max OS X“, „Red Hat Linux“, „Debian Linux“ etc. Or the JBossAS and
+"Max OS X", "Red Hat Linux", "Debian Linux" etc. Or the JBossAS and
 Tomcat from above are both of category Server, but have different ResourceType.
 
 
@@ -143,7 +145,7 @@ The RHQ wiki now hosts a plugin community page that shows available plugins: RHQ
 Plugin Community
 at https://docs.jboss.org/author/display/RHQ/Plugin+Community.
 
-Check it out for any updates about plugin related information – including
+Check it out for any updates about plugin related information - including
 lists of new plugins.
 
 == About RHQ

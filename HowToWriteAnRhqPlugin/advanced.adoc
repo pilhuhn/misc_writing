@@ -1,5 +1,6 @@
 = Advanced topics
 
+== Preface
 In this part we see some more advanced topics that you don't need
 when starting to write a plugin or to just follow the example.
 
@@ -83,7 +84,7 @@ platform/server/service can have `<process-scan>` elements. The element itself
 is empty, but has two required attributes: _name_ and _query_. Name just names
 this specific scan method. Query is the interesting part. It is a string written
 in PIQL (Process Info Query Language), which is documented in the JavaDoc to its
-class. I don‘t want to go into detail here and just show three example
+class. I don't want to go into detail here and just show three example
 queries. Visit the page just mentioned to learn more.
 
 **Query 1: find a JBossAS**
@@ -91,7 +92,7 @@ queries. Visit the page just mentioned to learn more.
     process|basename|match=^java.*,arg|org.jboss.Main|match=.*
 
 We want to query for a process, whose name is starting with java and which has
-an argument of org.jboss.Main – a Jboss Server. The matching entry from ps is:
+an argument of org.jboss.Main - a Jboss Server. The matching entry from ps is:
 
     hrupp     2035   0.0 -1.5   724712  30616  p7  S+    9:49PM   0:01.61 java -Dprogram.name=run.sh 
      -Xms128m 
@@ -193,19 +194,21 @@ managed resources. There exists a `<content>` element as counterpart.
 
 Events are a way to inject asynchronous data into the RHQ server. One example of
 Events within RHQ
-is the gathering and parsing of logfiles. Events are a little bit like traits.
+is the gathering and parsing of logfiles. Events are a little bit like traits
+in the sense that new data does not arrive at fixed intervals.
 The difference here is that one Event definition can match multiple event
 sources and that the number of Events that are delivered to the RHQ server can
 be different each time the polling for Events is called.
-Events are processed by EventPollers – a method that gets called at a regular
+Events are processed by EventPollers - a method that gets called at a regular
 interval by the PluginContainer and which delivers one or more Events back into
 the system.
+
 Two samples for EventPollers are the Logfile pollers, that check for new
 matching lines in logfiles and the snmptrapd plugin that I will describe now.
 The plugin descriptor is mostly as we know it already. There is now one new
 element:
 
-    <event name=“SnmpTrap“ description=“One single incoming trap“/>
+    <event name="SnmpTrap" description="One single incoming trap"/>
 
 The important part here is the name attribute, as we will need its content later
 again. The name is the key into the EventDefinition object.
@@ -230,7 +233,7 @@ In `stop()` we just unregister the poller again:
 
    eventContext.unregisterEventPoller(TRAP_TYPE);
    
-TRAP_TYPE is the ResourceType name as String – we will see this again in a
+TRAP_TYPE is the ResourceType name as String - we will see this again in a
 second.
 
 The remainder of this class is nothing special and if you have read the plugin
@@ -248,7 +251,7 @@ Implementing EventPoller means to implement two methods:
       }
 
 Here we return the content of the name attribute from the `<event>` tag of the
-plugin descriptor. The plugin will not start if they don‘t match.
+plugin descriptor. The plugin will not start if they don't match.
 
 The other method to implement is `poll()`:
 
@@ -260,4 +263,57 @@ The other method to implement is `poll()`:
 
 To create one Event object you just instantiate it. The needed type can just be
 obtained by a call to `getEventType()`.
+
+== Creation and deletion of managed resources
+
+So far we have only seen resources that were already present on the target, which
+is true in most cases. Sometimes you want to create a new resource though - 
+think of a new database table or a user. When monitoring and managing
+application servers you may also want to upload new applications or remove
+existing ones.
+
+As in previous cases, this functionality needs to be "enabled" in the plugin
+descriptor and then also implemented in code.
+
+=== Plugin descriptor
+
+In the plugin descriptor you will find two attibutes inside the
+plattform/server/service elements that govern the creation and deletion
+of resources
+
+* createDeletePolicy: This attribte describes wether you can create and/or
+delete such resouces. You have the four choices of _neither_, _create-only_,
+_delete-only_ and _both_ with _none_ being the default.
+* creationType: This attribute determines if the new resource is created
+based on content that the user supplies via the server (_content_) or if
+it is purely created based on configuration data (_configuration_), which
+is also the default.
+
+=== And code
+
+  < TODO >
+
+== Plugin inheritance
+
+When writing plugins you will often come to a point where you e.g. need to 
+talk to a JMX footnote:[Java Management Extenions] server such as an arbitrary
+JVM. Or you want to write a plugin for a database that RHQ does not yet support.
+Of course it is possible to write the JMX or Database connection code by hand,
+but the better way is to re-use the existing plugins. In case of Databases,
+you can use the Database plugin for this purpose.
+
+The following is taken from the Postgres-plugin:
+
+    <plugin... >
+ 
+       <depends plugin="Database" useClasses="true"/>
+
+With the depends element you tell your plugin that it requires the
+plugin with the name _Database_ to be present and that you want to
+use the classes it provides.
+
+A more interesting case is when the base plugin already defines a tree of
+resource types in which you want to hook the classes of your plugin in.
+One example in the RHQ source is the Hibernate plugin that can run on
+top of a JMX resource, the JBoss Application Server or inside Tomcat.
 
