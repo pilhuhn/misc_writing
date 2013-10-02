@@ -135,8 +135,16 @@ Luckily there is a way you can test the functionality of the plugin classes
 without the need to deploy it to the server (If you need to see how things
 render on the server, you still need to deploy it there though). The 
 _standalone plugin container_ allows you to just load the plugin you want to
-test (plus its dependencies)
-and then issue commands in an interactive shell.
+test (plus its dependencies, which include the platform plugin) and then issue 
+commands in an interactive shell.
+
+If you for example want to test the Tomcat plugin, which depends on the 
+jmx-plugin to make connections to the target servers, you would put the
+tomcat-, the jmx- and the platform-plugin into the agents `plugins/` 
+directory before starting the standalone container.
+
+TIP: removing not-needed plugins from the `plugins/` directory 
+improves the time for startup and also discovery later.
 
 === Sample run 
 
@@ -223,17 +231,39 @@ command syntax exists. Issuing `!h` gives you an overview of existing commands.
 To dispay the history you give `!?`:
 
     [8]:-2 > !?
-    [0]: res
-    [1]: set id -2
-    [2]: m -list
-    [3]: m m CpuPerc.user
+    [9]: res
+    [10]: set id -2
+    [11]: m -list
+    [12]: m m CpuPerc.user
 
 To re-run command 2 you say `!2`; to just re-run the last command, you can
 simply type `!!`.
 
+=== Finding resources by criteria
+
+When you have a larger plugin you will see that the list of resources
+discovered can be quite large and that finding a certain resource
+invloves a lot of scrolling. To make this process easier and also to
+cater for some automation (see next section), it is possible to run the
+find command:
+
+[source]
+----
+[13]: find r snert  <1>
+-2: snert (parent= null )
+[14]:0 > set r $r   <2>
+[15]:-2 > print
+ Resource[id=-2, uuid=2eb2ef5b-9ad4-444b-a1a4-4cced69ff34f,
+      type={Platforms}Mac OS X, key=snert, name=snert, parent=<null>,
+      version=MacOSX 10.7.4]
+----
+<1> We are searching for a resource with name 'snert'
+<2> The variable `$r` now contains the resource id of the resource found
+and can be used to set the resource to work with.
+
 === Recording and replaying of commands 
 
-As you have just seen, the system keeps a list of commands issued. You can write
+As you have seen, the system keeps a list of commands issued. You can write
 that list of commands 
 to a file via `!w <filename>`. When you then start the container with that
 filename as argument, it will
@@ -242,11 +272,16 @@ re-run the commands from the file.
     bin/standalone-pc.sh <filename>
     
 When the standalone container has run all the commands, it will just shut down.
+
 In many times when developing
 a new plugin, you want to continue issuing commands and for example check the
 executed plugin code in the
 debugger. To achieve this, add a `stdin` command before writing the file (or
 edit the generated file afterwards).
+
+To make the script resilient to changes in discovery order you can 
+use the `find` command we have just discussed, so that you do not
+have to hardcode resource ids. 
 
 == Plugin verification 
 
