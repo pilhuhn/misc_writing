@@ -209,6 +209,9 @@ we inquired the list of metrics and in step 4 queried the value of the metric
 with the name `CpuPer.user`. The first 'm' in the command is the command name
 monitor, the second means that this is a metric.
 
+
+TIP: To learn about the commands available type `help` at the command prompt.
+
 === Getting and setting the plugin configuration 
 
 Above we have seen how to set the URL for the target to monitor. You can also
@@ -221,6 +224,21 @@ values from the standalone container by running the __pc__ and __pcs__ commands:
     [7]:-2 > pc
     PropertySimple[id=0, name=logs, value=bla, override=null]
     
+The __pcs__ command does by default set a full configuration, where individual 
+key-value pairs are separated by `||`. Running `pcs` like this a second time
+overwrites the previously set values.
+
+    [7]:-2 > pcs key1=value1||key2=value2
+
+It is also possible to pass individual key-value pairs and merge them with the
+values set previously:
+
+    [7]:-2 > pcs key1=value1
+    [8|:-2 > pcs -m key2=value2
+    
+
+NOTE: There are analogous commands `rc` and `rcs` that can be used to get and set
+teh resource configuration.
 
 === Command history 
 
@@ -245,11 +263,11 @@ When you have a larger plugin you will see that the list of resources
 discovered can be quite large and that finding a certain resource
 invloves a lot of scrolling. To make this process easier and also to
 cater for some automation (see next section), it is possible to run the
-find command:
+`find` command:
 
 [source]
 ----
-[13]: find r snert  <1>
+[13]: > find r snert  <1>
 -2: snert (parent= null )
 [14]:0 > set r $r   <2>
 [15]:-2 > print
