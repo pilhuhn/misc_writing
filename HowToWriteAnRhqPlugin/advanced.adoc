@@ -267,7 +267,7 @@ obtained by a call to `getEventType()`.
 == Creation and deletion of managed resources
 
 So far we have only seen resources that were already present on the target, which
-is true in most cases. Sometimes you want to create a new resource though - 
+is true in most cases. Sometimes you want to create a new resource though: 
 think of a new database table or a user. When monitoring and managing
 application servers you may also want to upload new applications or remove
 existing ones.
@@ -289,9 +289,96 @@ based on content that the user supplies via the server (_content_) or if
 it is purely created based on configuration data (_configuration_), which
 is also the default.
 
-=== And code
+If the new resource is based upon a configuration, you need to also provide
+the information about the conifguration items in the plugin descriptor:
 
-  < TODO >
+[source,xml]
+----
+<server name="Parent" 
+  class="ParentComponent"
+  ... >
+  <service name="FileTest"
+     class="FileComponent"
+     createDeletePolicy="both"
+     creationType="configuration"> 
+
+     <resource-configuration>
+       <c:simple-property name="filename" required="true">
+    </resource-configuration>
+  <service>
+</server>
+----
+
+=== And the code for creation
+
+Creation of child resources needs to be enabled in the _parent_
+resource component (in above example this would be the _ParentComponent_).
+ While this sounds very logical it has the drawback that
+if you write a plugin that is embedded into another plugin, you need to change
+the plugin that embeds yours. A workaround can be to introduce a thin layer
+for the "subsystem" of your plugin, that defines the availability of the 
+subsystem, provides some metrics and then provides the code to create the
+child resources.
+
+To create child resources you need to implement the
+`CreateChildResourceFacet` which has one method to implement
+`CreateResourceReport createResource(CreateResourceReport report);`. This
+method gets a report passed in which describes the parameters for the 
+resource creation.
+
+Below is a simple example that creates a new file (resource) somewhere
+in the file system. First the creation part in the _ParentComponent_ class:
+
+[source,java]
+----
+CreateResourceReport createResource(CreateResourceReport report) {
+
+    Configuration configuration = report.getResourceConfiguration();   <1>
+    PropertySimple fName = configuration.getSimpleValue("filename",null);
+    if (fName==null) {
+        report.setStatus(CreateResourceStatus.INVALID_CONFIGURATION);  <2>
+        report.setErrorMessage("File name not given");
+        return report;
+    }
+    File file = new File(fName);  <3>
+    ...
+    report.setStatus(CreateResourceStatus.SUCCESS);   <4>
+    report.setResourceKey(file.getAbsolutePathName());
+    report.setResourceName(report.getUserSpecifiedResourceName());
+    }
+}
+----
+<1> Get the user provided configuration
+<2> The passed configuration was bad, so let the user know
+<3> Configuration was good, so create the resource (= the file)
+<4> Creation was a success, so let the user know too.
+
+The resource created is now of the type _FileType_.
+
+=== ... and deletion
+
+The deletion code goes into the component class of the created object type,
+which is the _FileComponent_ in our above example. This needs now to implement
+the `DeleteResourceFacet` with its one method `deleteResource()`:
+
+[source,java]
+----
+public void deleteResource() throws Exception {
+
+    Configuration = context.getPluginConfiguration()  <1>
+    PropertySimple fName = configuration.getSimpleValue("filename",null);  <2>
+    File file = new File (fName); 
+    boolean gone = file.delete(); <3>
+    if (!gone) {
+       throw new Exception("File not found"); <4>
+    }
+}
+----
+<1> The `context` has been passed in the `start()` method and is now used to retrieve
+the plugin configuration
+<2> We now obtain the file name
+<3> And try to delete the resource
+<4> If deletion failed, we throw an excpeiton
 
 == Plugin inheritance
 
@@ -316,4 +403,3 @@ A more interesting case is when the base plugin already defines a tree of
 resource types in which you want to hook the classes of your plugin in.
 One example in the RHQ source is the Hibernate plugin that can run on
 top of a JMX resource, the JBoss Application Server or inside Tomcat.
-
