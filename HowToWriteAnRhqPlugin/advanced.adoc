@@ -403,3 +403,15 @@ A more interesting case is when the base plugin already defines a tree of
 resource types in which you want to hook the classes of your plugin in.
 One example in the RHQ source is the Hibernate plugin that can run on
 top of a JMX resource, the JBoss Application Server or inside Tomcat.
+
+=== Zip-less plugins 
+
+In the past it was always required that you package a plugin within
+a zip-archive - even if it was only having a plugin descriptor (like
+a plugin that inherits from a base plugin and where the layered plugin
+only uses classes from this base plugin (e.g. to provide additional
+metrics).
+
+It is now possible to deploy those plugin-descriptors on their own if
+their name follows the `*-rhq-plugin.xml` naming convention.
+Of course for this to work the base plugin already needs to be deployed.
