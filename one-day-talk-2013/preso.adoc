@@ -1,0 +1,120 @@
+:backend: deckjs
+:deckjs_theme: swiss
+:transition: fade
+:status:
+:navigation:
+:split:
+:customcss:
+:author: Heiko W. Rupp
+:email: hwr@redhat.com
+= Aktuelle und zukünftige Entwicklungen in RHQ
+
+== Frage:
+
+[options="step"]
+Wer kennt RHQ?
+
+[options="step"]
+Wer nutzt RHQ?
+
+[options="step"]
+Wer kennt und nutzt JBoss ON?
+
+== Aktuell
+
+RHQ 4.9 
+
+* 11.9.2013
+* Grundlage für JBoss ON 3.2
+* Läuft intern auf JBoss EAP 6
+
+[canvas-image="images/RHQ-classic.png"]
+
+== la la la this is not shown
+
+[role="canvas-caption", position="center-up"] 
+Klassisches Setup
+
+[canvas-image="images/StorageNodes.png"]
+
+== Eingebaute Storage Nodes
+
+[role="canvas-caption", position="center-up"] 
+Storage Nodes
+
+== Storage Nodes
+
+* Anstelle von Metriken im RDBMS
+* Skalieren von Knoten
+* Später auch Events, Calltime etc.
+* Automatisches Setup
+
+[canvas-image="images/Monitoring2.png"]
+
+== Another slide
+[role="canvas-caption", position="center-up"] 
+Neue Graphen
+
+== Neuer Installer
+
+* Kommandozeile
+* `rhqctl`
+** install -- Installiert Server, Agent, Storage
+** start 
+** stop
+** status
+* `rhq-server.sh` ist veraltet
+
+
+== Zukünftig -- Kurzfristig
+<<< 
+[options="step"]
+* Verbesserte Installation
+** Evtl. "Standalone" Installer
+* Bessere Unterstüzung für AS7/WildFly
+** Bundles und Drift für Domain mode
+** Dirty-State
+
+<<<
+[options="step"]
+* Performanceverbesserungen
+* Angleichung Content / Bundles
+* Mehr Datentypen in Storage Nodes
+* Audit-Subsystem
+* DynaGroup- und andere Templates im Plugin
+
+== Frage: Umgebungen
+
+[options="step"]
+* Wie viele Agents ?  
+** < 10
+** 10 - 50
+** > 50
+* Wie viele Top-Level-Server
+** < 100
+** < 500
+** > 500
+
+== Zukünftig -- Längerfristig
+
+[quote,Henry Ford ]
+"Wenn ich die Menschen gefragt hätte, was sie wollen, hätten sie gesagt schnellere Pferde."
+
+<<<
+
+Es ist noch nichts beschlossen
+
+* Alert 2.0
+* UI Plugins
+* Neue (schlankere) Agents
+
+<<<
+
+Was wird hier gewünscht?
+
+
+== Danke
+
+Vielen Dank.
+
+Folien: 
