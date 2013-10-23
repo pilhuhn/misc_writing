@@ -1,0 +1,11 @@
+.deck-container .paragraph {
+        font-size: 250%;
+}
+
+.deck-container ul {
+	font-size: 125%;
+}
+
+.deck-container ul ul {
+	font-size: 100%;
+}
