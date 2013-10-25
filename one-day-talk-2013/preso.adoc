@@ -71,6 +71,7 @@ Neue Graphen
 * Erweiterte REST-Api 
 * DynaGroups aus Gruppen
 * Einfacheres Setup von SNMP-Traps
+* Live-Availability
 
 == Zukünftig -- Kurzfristig
 <<< 
@@ -138,6 +139,7 @@ Was wird *hier* gewünscht?
 * http://jboss.org/rhq
 * http://pilhuhn.blogspot.com
 * @pilhuhn / @rhq_project
+* irc://irc.freenode.net/#rhq
 
 == Danke
 
