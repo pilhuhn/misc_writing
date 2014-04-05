@@ -1,11 +1,11 @@
 = Tools
 
 == Preface
-This section describes tools around the developemnt of agent plugins.
+This section describes tools around the development of agent plugins.
 While the process is straightforward, there are still a lot of steps
 to consider when writing and testing the plugin.
 
-== Plugin generator 
+== Plugin generator
 
 Above you have seen that writing a plugin is not that hard, but that it still
 needs a lot of work to
@@ -28,8 +28,8 @@ You can just start the plugin generator via `java -jar`. It will then
 prompt you with a number of questions, where some have a default like 'n' in
 '(y/N)', that you can apply by pressing return.
 
-    $ java -jar target/rhq-pluginGen-4.5.0-SNAPSHOT.jar 
-    
+    $ java -jar target/rhq-pluginGen-4.5.0-SNAPSHOT.jar
+
 First we need to determine the resource category of the root type in the plugin.
 
     Please specify the plugin root category PLATFORM(P), SERVER(S), SERVICE(I),
@@ -41,53 +41,53 @@ as well as the base directory into which our plugin will be written.
     Please specify its Name: jmxdemo
     Please specify its PackagePrefix: org.rhq.plugins
     Please specify its FileSystemRoot: /im/rhq/modules/plugins
-    
+
 Finally you need to provide the class names of the component and discovery
-classes of the plugin. 
-    
+classes of the plugin.
+
     Please specify its ComponentClass: DemoComponent
     Please specify its DiscoveryClass: DemoDiscovery
-    
+
 From here on, the generator asks for support of the various facets and
 will then create respective entries in the plugin descriptor, as well
-as in generated code artefacts.    
-    
-    Please specify if it should support Events (y/N): 
+as in generated code artefacts.
+
+    Please specify if it should support Events (y/N):
     Please specify its ParentType: MBeanResourceComponent
-    Please specify if it should support HasMetrics (y/N): 
-    Please specify if it should support HasOperations (y/N): 
-    Please specify if it should support Singleton (y/N): 
-    Please specify if it should support ResourceConfiguration (y/N): 
-    Please specify if it should support SupportFacet (y/N): 
-    Please specify if it should support CreateChildren (y/N): 
-    Please specify if it should support UsesExternalJarsInPlugin (y/N): 
-    Please specify if it should support DeleteChildren (y/N): 
-    Please specify if it should support ManualAddOfResourceType (y/N): 
-    Please specify if it should support UsePluginLifecycleListenerApi (y/N): 
-    
+    Please specify if it should support HasMetrics (y/N):
+    Please specify if it should support HasOperations (y/N):
+    Please specify if it should support Singleton (y/N):
+    Please specify if it should support ResourceConfiguration (y/N):
+    Please specify if it should support SupportFacet (y/N):
+    Please specify if it should support CreateChildren (y/N):
+    Please specify if it should support UsesExternalJarsInPlugin (y/N):
+    Please specify if it should support DeleteChildren (y/N):
+    Please specify if it should support ManualAddOfResourceType (y/N):
+    Please specify if it should support UsePluginLifecycleListenerApi (y/N):
+
 If your plugin needs JMX to talk to the managed resource, you can use the
-JMX-plugin for RHQ that helps you with connecting to the JMX server etc.    
-    
+JMX-plugin for RHQ that helps you with connecting to the JMX server etc.
+
     Please specify if it should support DependsOnJmxPlugin (y/N): y
 
 Finally you need to provide some more information about the plugin
 itself like the version of RHQ to build with, the name as it shows up in the UI
 and some descriptions.
-    
+
     Please specify its RhqVersion: 4.5.0-SNAPSHOT
     Please specify its PluginName: rhq-jmxdemo
     Please specify its PluginDescription: Test for local JMX connections
     Please specify its Description: Test JDK6 jmx connections
-    
+
     Do you want to add a child to jmxdemo? (y/N) n
-    
+
 If you choose to add a child resource type to the above, you need to proide
 the Facet and other information about the child type. Otherwise the generator
 will continue, print a summary of your input and then generate the
 artefacts.
-    
+
     Aug 23, 2012 2:32:11 PM org.rhq.helpers.pluginGen.PluginGen run
-    INFO: 
+    INFO:
     You have chosen:
     Props{category=SERVER, name='jmxdemo', description='Test JDK6 jmx
 connections', packagePrefix='org.rhq.plugins', pkg='null',
@@ -111,10 +111,10 @@ simpleProps=[], templates=[], runsInsides=[]}
     INFO: Trying to generate /im/rhq/modules/plugins/jmxdemo/src/main/java/org/rhq/plugins/jmxdemo/DemoComponent.java
     Aug 23, 2012 2:32:12 PM org.rhq.helpers.pluginGen.PluginGen generate
     INFO: Done ..
-    
+
 When it is done, it will also remind you of some next steps.
-    
-    Don't forget to 
+
+    Don't forget to
       - add your plugin to the parent pom.xml if needed
       - edit pom.xml of your plugin
       - edit rhq-plugin.xml of your plugin
@@ -133,20 +133,20 @@ process is tedious and slow.
 
 Luckily there is a way you can test the functionality of the plugin classes
 without the need to deploy it to the server (If you need to see how things
-render on the server, you still need to deploy it there though). The 
+render on the server, you still need to deploy it there though). The
 _standalone plugin container_ allows you to just load the plugin you want to
-test (plus its dependencies, which include the platform plugin) and then issue 
+test (plus its dependencies, which include the platform plugin) and then issue
 commands in an interactive shell.
 
-If you for example want to test the Tomcat plugin, which depends on the 
+If you for example want to test the Tomcat plugin, which depends on the
 jmx-plugin to make connections to the target servers, you would put the
-tomcat-, the jmx- and the platform-plugin into the agents `plugins/` 
+tomcat-, the jmx- and the platform-plugin into the agents `plugins/`
 directory before starting the standalone container.
 
-TIP: removing not-needed plugins from the `plugins/` directory 
+TIP: removing not-needed plugins from the `plugins/` directory
 improves the time for startup and also discovery later.
 
-=== Sample run 
+=== Sample run
 
 To start the standalone PC, you change into the agent directory, copy your
 plugin into the `plugins` subdirectory and then call
@@ -163,16 +163,17 @@ prompt. If your plugin does not show up in the printed list, it has probably
 some errors in the plugin descriptor. You
 can find out by looking at the agent log in `logs/agent.log`.
 
+----
+    hrupp$ bin/standalone-pc.sh
 
-    hrupp$ bin/standalone-pc.sh 
-    
     Starting the plugin container.
     Loading plugins
     ...Loaded plugin: HttpCheck
     ...Loaded plugin: Platforms
-    
+
     Ready.
     [0]:0 >
+----
 
 The command prompt now waits for your input. The number in the square brackets
 is the number of the current command. The number after the colon a resource id;
@@ -182,12 +183,15 @@ and a short description.
 
 One of the first things you want to do here is to discover resources
 
+----
     [0]:0 > disc all
     Discovery took: 5408ms
     [Resource[id=-25, uuid=b1f......
+----
 
 To select a resource and to issues specific commands to it, you can set it's id:
 
+----
     [1]:0 > set id -2
     [2]:-2 res
     Resource[id=-2, uuid=2eb2ef5b-9ad4-444b-a1a4-4cced69ff34f,
@@ -202,6 +206,7 @@ To select a resource and to issues specific commands to it, you can set it's id:
     CpuPerc.user : MEASUREMENT, Percentage of all CPUs running in user mode
     [4]:-2 > m m CpuPerc.user MeasurementDataNumeric[name=CpuPerc.user,
        value=0.1188118811881188, scheduleId=1, timestamp=1342878190137]
+----
 
 In step 1, we selected resource id -2, then issued the `res` command to see
 specifics of the resource. In step 3,
@@ -212,7 +217,7 @@ monitor, the second means that this is a metric.
 
 TIP: To learn about the commands available type `help` at the command prompt.
 
-=== Getting and setting the plugin configuration 
+=== Getting and setting the plugin configuration
 
 Above we have seen how to set the URL for the target to monitor. You can also
 inspect and set those
@@ -223,8 +228,8 @@ values from the standalone container by running the __pc__ and __pcs__ commands:
     [6]:-2 > pcs logs=bla
     [7]:-2 > pc
     PropertySimple[id=0, name=logs, value=bla, override=null]
-    
-The __pcs__ command does by default set a full configuration, where individual 
+
+The __pcs__ command does by default set a full configuration, where individual
 key-value pairs are separated by `||`. Running `pcs` like this a second time
 overwrites the previously set values.
 
@@ -235,12 +240,12 @@ values set previously:
 
     [7]:-2 > pcs key1=value1
     [8|:-2 > pcs -m key2=value2
-    
+
 
 NOTE: There are analogous commands `rc` and `rcs` that can be used to get and set
 teh resource configuration.
 
-=== Command history 
+=== Command history
 
 When using the standalone-pc, you often want to repeat a command given. For this
 purpose a csh-like
@@ -279,16 +284,16 @@ cater for some automation (see next section), it is possible to run the
 <2> The variable `$r` now contains the resource id of the resource found
 and can be used to set the resource to work with.
 
-=== Recording and replaying of commands 
+=== Recording and replaying of commands
 
 As you have seen, the system keeps a list of commands issued. You can write
-that list of commands 
+that list of commands
 to a file via `!w <filename>`. When you then start the container with that
 filename as argument, it will
 re-run the commands from the file.
 
     bin/standalone-pc.sh <filename>
-    
+
 When the standalone container has run all the commands, it will just shut down.
 
 In many times when developing
@@ -297,18 +302,18 @@ executed plugin code in the
 debugger. To achieve this, add a `stdin` command before writing the file (or
 edit the generated file afterwards).
 
-To make the script resilient to changes in discovery order you can 
+To make the script resilient to changes in discovery order you can
 use the `find` command we have just discussed, so that you do not
-have to hardcode resource ids. 
+have to hardcode resource ids.
 
-== Plugin verification 
+== Plugin verification
 
 During development process you will often change items in the plugin descriptor
 and your java classes and
 if you make a mistake, you will only find out when you deploy the plugin to the
 server (or the standalone
 container). Actually there is a way to run a basic verification of the plugin.
-This checks some basic properties like the syntactical 
+This checks some basic properties like the syntactical
 correctness of the plugin descriptor and if the classes that are denoted as
 discovery and component
 classes can be found and loaded by the plugin classloaders.
@@ -338,7 +343,7 @@ them all on the command line.
 If you have checked out the whole RHQ source tree, you can add your plugin to
 the list of plugins to be verified
 when a build of the plugins happens. This verification step checks some basic
-properties like the syntactical 
+properties like the syntactical
 correctness of the plugin descriptor and if the classes that are denoted as
 discovery and component
 classes can be found and loaded by the plugin classloaders.
@@ -359,7 +364,7 @@ To do this, you need to add your plugin to the list in
                   failonerror="true" fork="true">
                 <classpath>
                   <pathelement path="${test.classpath}" />
-                  <pathelement 
+                  <pathelement
                     location="../apache/target/rhq-apache-plugin-${project.version}.jar" />
                   <!-- as in the next line  vvvvv  -->
                   <pathelement
@@ -369,3 +374,39 @@ To do this, you need to add your plugin to the list in
 You just add the path to your plugin to the list of `<pathelement>` elements as
 shown above.
 
+== Agent Plugin Plugin
+
+https://github.com/tsegismont[Thomas Segismont] has created a maven plugin,
+called the https://github.com/rhq-project/rhq-agent-plugin-plugin["RHQ Agent Plugin Plugin"],
+which can be used to run the deployment magic on your local or remote server, run the validator
+and much more.
+
+The following shows an excerpt from a `pom.xml` file that can be used to deploy the
+plugin to the co called "dev-container":
+
+[source,xml]
+----
+      <plugins>
+
+        <plugin>
+          <groupId>org.rhq.maven.plugins</groupId>
+          <artifactId>rhq-agent-plugin-plugin</artifactId>
+          <version>${rhq-agent-plugin-plugin.version}</version>
+          <extensions>true</extensions>
+          <configuration>
+            <deployDirectory>/im/run-rhq/dev-container/rhq-server/plugins/</deployDirectory>
+          </configuration>
+
+          <executions>
+            <execution>
+              <id>deploy-to-dev-container</id>
+              <goals>
+                <goal>deploy</goal>
+              </goals>
+              <phase>package</phase>
+            </execution>
+
+----
+
+Actually you can do a lot more - have a look at the documentation for more examples.
+At the plugin is still in its early days, contributions are very welcome

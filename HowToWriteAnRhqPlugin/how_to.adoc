@@ -1,12 +1,16 @@
-= How to write a(n agent) plugin for RHQ and JBoss ON? 
+= How to write a(n agent) plugin for RHQ and JBoss ON?
 Heiko W. Rupp <heiko.rupp@redhat.com>
 :toc:
 :doctype: book
+:source-highlighter: highlight.js
+:icons: font
+:experimental:
 :imagesdir: assets
 :homepage: http://jboss.org/rhq/
 :license: cc-by-sa 3.0
 :author: Heiko W. Rupp
 :encoding: iso-8859-1
+:git: https://github.com/rhq-project/rhq
 
 
 [preface]
@@ -21,7 +25,7 @@ about RHQ.
 Please contact me or my colleagues if you have questions or suggestions.
 
 CAUTION: This document is a best effort attempt into describing the process of
-writing agent plugins for RHQ. 
+writing agent plugins for RHQ.
 This document may contain errors or omissions. The author assumes no liability.
 
 NOTE: This document is released under a Creative Commons 3.0  BY-SA license.
@@ -80,9 +84,9 @@ The server hosts a number of services like:
 
 Some of those services are reflected in the agent like inventory syncing,
 gathering of measurement data or running operations on a managed resource, while
-alert processing or hosting of the GUI is purely on the server. 
+alert processing or hosting of the GUI is purely on the server.
 
-Note, that a RHQ server never directly talks to a managed resource. Only agents
+NOTE: An RHQ server never directly talks to a managed resource. Only agents
 (or better: their plugins) talk to managed resources.
 
 === Agent architecture
@@ -91,7 +95,7 @@ The agent is sort of a container that hosts some common functionality like the
 communication interface with the server, logging, starting and stopping of
 plugins, reading configuration files or spooling data in case the server is not
 reachable. It is also handling of the command line and interactive command
-prompt. 
+prompt.
 
 In addition to this, it hosts the plugin container, who hosts the actual
 plugins. When you write a plugin, you talk to the plugin container.
@@ -138,8 +142,11 @@ include::advanced.adoc[]
 
 include::tools.adoc[]
 
+// include::some_plugins.adoc[]
+
 = Appendix
-== More information on Plugins 
+
+== More information on Plugins
 
 The RHQ wiki now hosts a plugin community page that shows available plugins: RHQ
 Plugin Community
@@ -156,10 +163,12 @@ top of RHQ at JavaOne 2008.
 
 RHQ developers can be reached in *#rhq* on irc://irc.freenode.net, development
 forums are hosted on https://community.jboss.org/en/rhq/ and the homepage is
-http://jboss.org/rhq/.
+{homepage}.
 
-== About the author 
+== About the author
+
 Heiko W. Rupp is developer at Red Hat in the area of RHQ and JBoss ON.
 He contributed to JBoss AS and other open source projects in the past
 and wrote the first German JBoss book and one of the first German books on EJB3.
-He lives with his family in Stuttgart, Germany.
+He lives with his family in Stuttgart, Germany. Heiko's twitter handle is
+http://twitter.com/pilhuhn[@pilhuhn].

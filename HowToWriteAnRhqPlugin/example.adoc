@@ -10,7 +10,7 @@ image::scenario_overview.png[Scenario Overview]
 
 To make things easier for the purpose of this first implementation, we will have
 the agent running on the machine the RHQ server lives on and we will just try to
-get data from the Servers http connector at port 7080 (the default port).
+get data from the Servers' http connector at port 7080 (the default port).
 
 == What do we need ?
 
@@ -26,7 +26,7 @@ measurement data etc.
 So lets have a look into those three parts.
 
 [[ref-pd-main]]
-=== Plugin descriptor 
+=== Plugin descriptor
 
 The plugin descriptor is described by an XML Schema that you can find in the
 subversion repository. The basic structure is as follows:
@@ -44,6 +44,7 @@ all of the same (XML-) data type (as a platform/server/service) as each is a
 kind of resource type, as you already know from the first part.
 Example:
 
+[source,xml]
     <service name="CheckHttp">
         <metric property="responseTime"
              description="How long did it take to connect"
@@ -87,7 +88,7 @@ be data values that only rarely change like OS version, IP Address of an
 ethernet interface or the hostname. RHQ is intelligent enough to only store
 changed traits to conserve space.
 
-=== Discovery component 
+=== Discovery component
 
 The discovery component will be called by the `InventoryManager` in the agent to
 discover resources. This can be done by a process table scan (e.g. for the
@@ -103,19 +104,19 @@ The DiscoveryComponent needs to implement
 implement `discoverResources()`.
 The usual code block that you will see in `discoverResources()` is:
 
-
-    Set<DiscoveredResourceDetails> result = 
+[source,java]
+    Set<DiscoveredResourceDetails> result =
         new HashSet<DiscoveredResourceDetails>();
       for ( ... ) {
          ...
-         DiscoveredResourceDetails detail = new DiscoveredResourceDetails( 
+         DiscoveredResourceDetails detail = new DiscoveredResourceDetails(
            context.getResourceType(),
            uniqueResourceKey,
-           resourceName, 
-           resourceVersion, 
+           resourceName,
+           resourceVersion,
            description,
-           configuration, // can be null if no configuration 
-           processInfo);  // can be null for no process scan 
+           configuration, // can be null if no configuration
+           processInfo);  // can be null for no process scan
          result.add(detail);
       }
       return result;
@@ -141,7 +142,7 @@ Each Facet has its own methods to implement. In the case of the
 `MeasurementFacet` this is e.g. `getValues(MeasurementReport report, Set
 metrics)`. The report passed in is where you add your results. The `metrics`
 parameter is a list of metrics for which data should be gathered. This can be
-all of your defined `<metric>` elements at once or only a few of 
+all of your defined `<metric>` elements at once or only a few of
 them - this depends
 on the schedules the user configured in the GUI.
 You will find more information about other factes below.
@@ -152,10 +153,10 @@ First let's talk about the project structure in the file system.
 == The RHQ project structure
 
 To make things easier, we will host this plugin just within the RHQ tree. So go
-and check out RHQ from [its git
-repo](http://git.fedorahosted.org/git/?p=rhq/rhq.git;a=summary). Build the
-project as described on the build page of the wiki2. After that is done, we will
-start to add our plugin into `modules/plugins/`. 
+and check out RHQ from {git}[its git
+repo]. Build the
+project as described on the https://docs.jboss.org/author/display/RHQ/Building+RHQ[build page of the wiki]. After that is done, we will
+start to add our plugin into `modules/plugins/`.
 As an alternative, you can use the skeleton-plugin as described in the wiki -
 in this case you do not need to check out RHQ completely.
 
@@ -175,6 +176,7 @@ RHQ is a mavenized project, thus we need to supply a pom file. Easiest is to
 just grab another pom, copy it over to the root of the plugin subtree and change
 at least the `artifactId`:
 
+[source,xml]
     <groupId>org.rhq</groupId>
     <artifactId>rhq-httptest-plugin</artifactId>
     <packaging>jar</packaging>
@@ -185,6 +187,7 @@ Please note that this only defines the pom for this subtree - it will not add
 this to the global project. To do this, you need to add the httptest plugin to
 the parent pom at the `modules/plugins/` level:
 
+[source,xml]
     <modules>
        <module>platform</module>
          ...
@@ -192,41 +195,44 @@ the parent pom at the `modules/plugins/` level:
        <module>httptest</module>
     </modules>
 
-=== The artifacts of our plugin 
+=== The artifacts of our plugin
 
 We will now look at the individual three artifacts that make up a plugin. The
 directory tree above shows where they are located.
 
-==== Plugin discovery component 
+==== Plugin discovery component
 
 First we start with discovering our server. This is relatively simple and
 directly follows the description in the previous part.
 
+[source,java]
+----
     public class HttpDiscoveryComponent implements ResourceDiscoveryComponent
     {
-      public Set discoverResources(ResourceDiscoveryContext context) throws 	
+      public Set discoverResources(ResourceDiscoveryContext context) throws
            InvalidPluginConfigurationException, Exception
       {
-        Set<DiscoveredResourceDetails> result = 
+        Set<DiscoveredResourceDetails> result =
           new HashSet<DiscoveredResourceDetails>();
-     
+
         String key = "http://localhost:7080/"; // RHQ server
         String name = key;
-        String description = "Http server at " + key; 
-        Configuration configuration = null; 
-        ResourceType resourceType = context.getResourceType();  
+        String description = "Http server at " + key;
+        Configuration configuration = null;
+        ResourceType resourceType = context.getResourceType();
         DiscoveredResourceDetails detail = new DiscoveredResourceDetails(
-               resourceType, 
-               key, 
-               name, 
-               null, 
-               description, 
-               configuration, 
+               resourceType,
+               key,
+               name,
+               null,
+               description,
+               configuration,
                null );
         result.add(detail);
         return result;
       }
     }
+----
 
 Again it is extremely important that the key is/stays the same for each
 discovery performed!
@@ -235,6 +241,7 @@ discovery performed!
 
 So the next part is the plugin component to do the work:
 
+[source,java]
     public class HttpComponent implements ResourceComponent, MeasurementFacet {
       URL url;       // remote server url
       long time;     // response time from last collection
@@ -246,23 +253,25 @@ But first we implement two of the methods from `ResourceComponent`. The first
 returns the availability of the remote server. We check if the status is `null`
 or 500 and return DOWN, otherwise UP.
 
+[source,java]
       public AvailabilityType getAvailability() {
         if (status == null || status.startsWith("5")) {
-          return AvailabilityType.DOWN; 
+          return AvailabilityType.DOWN;
         }
         return AvailabilityType.UP;
       }
-    
+
 One needs to be careful here, as the discovery will not happen as long as this
 method is returning DOWN. So we provide a valid start value in the `start()`
 method from the `ResourceComponent`:
 
+[source,java]
       public void start(ResourceContext context) throws
          InvalidPluginConfigurationException, Exception
       {
-        url = new URL("http://localhost:7080/"); 
-        // Provide an initial status, 
-        //  so getAvailability() returns UP 
+        url = new URL("http://localhost:7080/");
+        // Provide an initial status,
+        //  so getAvailability() returns UP
         status = "200";
       }
 
@@ -271,15 +280,16 @@ resources, which we leave empty and don't show it here.
 
 This leads us to `getValues()` from the MeasurementFacet:
 
+[source,java]
       public void getValues(MeasurementReport report,
            Set<MeasurementScheduleRequest> metrics) throws Exception
       {
         getData();
-        // Loop over the incoming requests and 
-        // fill in the requested data 
+        // Loop over the incoming requests and
+        // fill in the requested data
         for (MeasurementScheduleRequest request : metrics) {
-          if (request.getName().equals("responseTime")) { 
-            report.addData(new MeasurementDataNumeric( request, new Double(time))); 
+          if (request.getName().equals("responseTime")) {
+            report.addData(new MeasurementDataNumeric( request, new Double(time)));
           }
           else if (request.getName().equals("status")) {
             report.addData(new MeasurementDataTrait (request, status));
@@ -292,16 +302,18 @@ metric is wanted and fill it in. Depending on the type we need to wrap it into
 the correct `MeasurementData*` class.
 This leaves the implementation of `getData()`:
 
+[source,java]
       private void getData()
       {
-        HttpURLConnection con = null; int code = 0;
+        HttpURLConnection con = null;
+        int code = 0;
         try {
           con = (HttpURLConnection) url.openConnection();
           con.setConnectTimeout(1000);
-          long now = System.currentTimeMillis(); 
+          long now = System.currentTimeMillis();
           con.connect();
-          code = con.getResponseCode(); 
-          long t2 = System.currentTimeMillis(); 
+          code = con.getResponseCode();
+          long t2 = System.currentTimeMillis();
           time = t2 - now;
         } catch (Exception e) {
           e.printStackTrace();
@@ -316,7 +328,7 @@ Again this is nothing fancy. Just open a URL connection, take the time it takes
 to connect, get the status code and we are done. Of course, this could be
 optimized, but for this article I wanted to use a simple solution.
 
-==== Plugin descriptor 
+==== Plugin descriptor
 
 The plugin descriptor is where everything is glued together. First we start off
 with some "boiler plate" code:
@@ -346,11 +358,11 @@ component. If you have specified the package above, you can just use the class
 name without prefix.
 
       <metric property="responseTime"
-              displayName="Response Time" 
-              measurementType="dynamic" 
+              displayName="Response Time"
+              measurementType="dynamic"
               units="milliseconds"
               displayType="summary"/>
-            
+
       <metric property="status"
               displayName="Status Code"
               dataType="trait"
@@ -364,7 +376,7 @@ Again, `responseTime` is modeled as numerical data, while the status is modeled
 as trait. This could have been done differently, but is done here for
 educational purposes :-)
 
-== Ready, steady, go ... 
+== Ready, steady, go ...
 
 To compile the plugin, go to the root of the plugin tree and do mvn -Pdev
 install
@@ -395,10 +407,10 @@ update them to the latest versions of the server.
     The plugin [HttpTest] has been updated at [rhq-httptest-plugin-4.5.0-SNAPSHOT.jar].
     Completed updating the plugins to their latest versions.
     The plugin container has been started.
-    > 
+    >
 
 If you now log into the GUI at http://localhost:7080/ and go to
-Inventory->Discovery Queue you import the new server into Inventory.
+menu:Inventory[Discovery Queue] you import the new server into Inventory.
 
 image::discovery_queue.png[Discovery Queue]
 
@@ -429,19 +441,19 @@ concentrate on the business code of your plugin. RHQ just does the rest.
 I have made the source code of those articles available as zip archive, that you
 can unpack in the `modules/plugins/` directory.
 
-== Enhancing the plugin 
+== Enhancing the plugin
 
 We have just built our first RHQ plugin. This was working great, but hardcoding
 the target URL is not really elegant. I will now show you how to make the target
 URLs configurable from the GUI.
 To do this we need to reshuffle things a little: We will have a generic Server
-'HttpCheck' that servers as parent for the individual 
+'HttpCheck' that servers as parent for the individual
 http-servers that we want to monitor. Those will live as Services under that
 Server. In the Server inventory we will add the possibility to manually add new
 http servers on the go.
 
-Note: before you continue, go to Administration->Agent plugins and remove the
-old plugin.
+NOTE: Before you continue, go to menu:Administration[] and then to the Agent plugins
+section and remove the old plugin.
 
 image::manual_add.png[RHQ Architecture]
 
@@ -449,13 +461,13 @@ As you may have already guessed, most of this is done in the plugin descriptor.
 We also need some small code changes, but those are mostly to separate the
 concerns of the various files. Lets start with the changed plugin descriptor.
 
-== Changed plugin descriptor 
+== Changed plugin descriptor
 
 The boilerplate code is the same as before and will thus not be shown again.
 
     <server name="HttpCheck"
-        description="Httpserver pinging" 
-        discovery="HttpDiscoveryComponent" 
+        description="Httpserver pinging"
+        discovery="HttpDiscoveryComponent"
         class="HttpComponent">
 
 I have changed the name of the Server to HttpCheck, as this is nicer in the GUI.
@@ -466,7 +478,7 @@ Now the interesting part starts:
            class="HttpServiceComponent"
            description="One remote Http Server"
            supportsManualAdd="true">
-         
+
 Here we introduce a Service as child of the above Server. It has its own Plugin
 Component and Discovery classes (the name of the classes reflect that they
 belong to this Service). Technically they could have gone into the existing
@@ -489,7 +501,7 @@ don't show them in detail again:
        </service>
     </server>
 
-=== A word about configuration and properties 
+=== A word about configuration and properties
 
 The configuration type presented here, can be used in several forms within a
 plugin descriptor: plugin-configuration
@@ -510,7 +522,7 @@ properties, so the user has only to fill in stuff that is needed or that they
 want to change. The template itself is of the configuration type and thus no
 shown again.
 
-==== Properties 
+==== Properties
 Properties allow you to specify individual aspects of a configuration. There are
 three types of properties:
 
@@ -531,7 +543,7 @@ properties of 'host', 'port', 'protocol' it could look like this:
     <plugin-configuration>
       <c:list-property name="Servers">
         <c:map-property name="OneServer">
-          <c:simple-property name="host"/> 
+          <c:simple-property name="host"/>
           <c:simple-property name="port">
             <c:integer-constraint
                 minimum="0"
@@ -546,7 +558,7 @@ properties of 'host', 'port', 'protocol' it could look like this:
         </c:map-property>
       </c:list-property>
     </plugin-configuration>
-    
+
 This example also shows a few more possibilities we have here: The port has a
 constraint so, the GUI can validate the input being between 0 and 2^16-1. For
 the protocol, we offer the user a drop down list / radio buttons to choose the
@@ -557,13 +569,13 @@ protocol from. It defaults to 'http', as indicated on the option element.
 These changes are - as already indicated - more or less just for clarity
 reasons and to clearly separate out the concerns of each component.
 
-==== Server level: HttpDiscoveryComponent 
+==== Server level: HttpDiscoveryComponent
 
 The HttpDiscoveryComponent from above only got some minor adjustments to cater
 for the change in naming, so I am not showing it here - have a look at the
 provided sources archive for details.
 
-==== Service level: HttpServiceDiscoveryComponent 
+==== Service level: HttpServiceDiscoveryComponent
 
 The `HttpServiceDiscoveryComponent` is more interesting, as we no longer have
 the hard coded keys, but we get the URL passed in from the GUI when the user is
@@ -581,11 +593,11 @@ Let's start with the basic implementation of `ResourceDiscoveryComponent`:
        {
           return Collections.emptySet();
        }
-       
+
 This just returns an empty set, as we don't want to automatically discovery
 these kinds of resources.
 The implementation of the `ManualAddFacet`then looks like this:
-       
+
     @Override
     public DiscoveredResourceDetails discoverResource(Configuration pluginConfiguration,
         ResourceDiscoveryContext context) throws InvalidPluginConfigurationException {
@@ -597,16 +609,16 @@ The implementation of the `ManualAddFacet`then looks like this:
         String name = key;
         String description = "Http server at " + key;
         DiscoveredResourceDetails detail = new DiscoveredResourceDetails(
-            resourceType, 
-            key, 
-            name, 
+            resourceType,
+            key,
+            name,
             null,
-            description, 
-            pluginConfiguration, 
+            description,
+            pluginConfiguration,
             null);
         return detail;
     }
-    
+
 This methods gets one create request at a time passed in. We check if there is
 some url given
 at all (in fact the definition in the plugin descriptor prevents empty
@@ -615,31 +627,31 @@ it is good to check anyway) and then just creates a new
 `DiscoveredResourceDetails` object, which
 is then returned.
 
-=== Change in plugin components 
+=== Change in plugin components
 
 The change in plugin components in basically that the old `HttpComponent` got
 renamed to `HttpServiceComponent` and that we have a new "pseudo"
 `HttpComponent` on server level.
 
-==== Server level - HttpComponent 
+==== Server level - HttpComponent
 Ok, this one is - as just described - a dummy implementation, as it just
 provides placeholder methods from the ResourceComponent interface.
 
-    public AvailabilityType getAvailability() { 
+    public AvailabilityType getAvailability() {
         return AvailabilityType.UP;
       }
 
 We set the Availability to being always UP so the component can successfully
 start. We leave the other two methods just as empty implementations.
 
-==== Service level - HttpServiceComponent 
+==== Service level - HttpServiceComponent
 As indicated this is more or less the old HttpComponent except for one change:
 
-    public void start(ResourceContext context) throws 
+    public void start(ResourceContext context) throws
       InvalidPluginConfigurationException, Exception
       {
        url = new URL(context.getResourceKey()); // Provide an initial status, so
-                                                // getAvailability() returns up 
+                                                // getAvailability() returns up
        status = "200";
       }
 
@@ -649,7 +661,7 @@ Building the enhanced plugin
 The updated plugin can be built as shown in the previous part by calling mvn
 -Pdev install in the root of plugin source tree.
 
-== Summary 
+== Summary
 You have just seen, how easy it is to pass plugin configuration parameters from
 the GUI to a plugin by expressing the parameters in the plugin descriptor. Our
 plugin is now able to have an arbitrary number of child services that each
