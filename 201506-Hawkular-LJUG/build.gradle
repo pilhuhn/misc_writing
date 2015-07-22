@@ -42,10 +42,22 @@ dependencies {
 }
 
 task download << {
+  mkdir buildDir
+  vfs {
+    cp "zip:https://github.com/hakimel/reveal.js/archive/"+revealjs_version+".zip!reveal.js-"+revealjs_version, revealjsDir, recursive: true, overwrite: true
+  }
+
+  if(!adocRevealjsDir.exists()) {
+   Grgit.clone(dir: adocRevealjsDir, uri: 'https://github.com/asciidoctor/asciidoctor-reveal.js')
+ }
 }
 
 asciidoctor {
-  dependsOn jrubyPrepareGems
+  if( !buildDir.exists() ) {
+    dependsOn jrubyPrepareGems
+    dependsOn download
+  }
+
   gemPath = jrubyPrepareGems.outputDir
   requires = ['asciidoctor-diagram']
   sources {
@@ -68,8 +80,6 @@ asciidoctor {
               revealjs_theme: 'black'
 
   options template_dirs: [new File(adocRevealjsDir, 'templates/slim').absolutePath]
-
-  dependsOn download
 }
 
 watch {

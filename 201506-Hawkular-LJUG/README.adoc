@@ -1,0 +1,9 @@
+This presentation entitled 'Hawkular' is generated using Lazybones and built with Asciidoctor-RevealJS
+
+Setup adoc+ reveal http://gscheibel.net/2015/07/06/How-long-does-it-take-you-to-create-a-RevealJS-presentation.html
+
+Some reveal+adoc hints: http://asciidoctor.org/docs/install-and-use-revealjs-backend/
+
+Render html: `gradle asciidoctor`
+
+Create pdf: `gradle --console=plain  --info -b reveal2pdf.gradle generatePdf`
