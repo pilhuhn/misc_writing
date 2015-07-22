@@ -1,0 +1,119 @@
+= Hawkular
+Heiko Rupp <hrupp@redhat.com>
+
+
+:imagesdir: images
+:sourcedir: snippets
+
+image::hawkular_logo_450x450.png[align=left,top,width=150,height=150]
+
+== Hawkular
+
+Server Management und Monitoring
+
+Open Source, ASL 2 Lizenz
+
+http://hawkular.org/
+
+== Geschichtliches
+
+RHQ http://rhq.jboss.org/
+
+* Generisch und leistungsfähig
+** Erweiterung über Plugins
+* Starr
+** Plugin Deskriptoren
+** GWT + SmartGWT
+* Sehr technische UI
+* Große Lernkurve
+
+== RHQ L&F
+
+image::JON-Monitoring.png[]
+
+== Hawkular-Ziele
+
+Langzeitliche Sicht
+
+Noch nicht erreicht
+
+=== Modular
+
+Klare Trennung von Komponenten
+
+Wiederverwendbarkeit
+
+"Microservices"
+
+=== Spezifische UI
+
+Für Ziel-Ressource optimiert
+
+* Geringere Lernkurve
+* Vorbild WildFly-Console
+
+image::1.0.0.Alpha1_urlresponsetime.png[]
+
+=== Applikations-zentrisch
+
+
+image::app-view.png[]
+
+=== Zugänglich via REST
+
+=== Aufwand für Selbstmanagement senken
+
+=== Mandantenfähigkeit
+
+=== Feed vs Agent
+
+Zuvor wurde ein Agent pro Maschine verlangt.
+
+Nun *Feeds*, die Teile eines Ganzen liefern.
+
+image::feeds-parts.png[]
+
+=== Predictive Analytics
+
+image::android_forecast.png[]
+
+== Architektur
+
+image::hawkular-architecture.png[]
+
+== Komponenten
+
+=== Hawkular-Metrics
+
+image::RHQ-Metrics.png[width=500,height=320]
+
+=== Hawkular-Alerts
+
+Continuous Event Processing
+
+Korrelation zwischen "beliebigem" Input
+
+Sender-Plugins
+
+=== Hawkular-Inventory
+
+Inventar als Graph
+
+
+=== Hawkular-BTM
+
+Business Transaction Management
+
+Früher RTGov
+
+== Demo
+
+http://localhost:8080/
+
+== Danke
+
+http://hawkular.org
+
+http://demo.hawkular.org
+
+https://github.com/hawkular
